@@ -1,14 +1,9 @@
-import { createClient } from '@supabase/supabase-js';
+import { getSupabase } from '@/lib/supabase';
 import { NextResponse } from 'next/server';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
 
 // GET /api/products — Ambil semua produk (dengan filter)
 export async function GET(request) {
-  try {
+  try { const supabase = getSupabase();
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category');
     const search = searchParams.get('search');
@@ -39,7 +34,7 @@ export async function GET(request) {
 
 // POST /api/products — Tambah produk baru (seller only)
 export async function POST(request) {
-  try {
+  try { const supabase = getSupabase();
     const body = await request.json();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

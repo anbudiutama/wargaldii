@@ -1,7 +1,19 @@
 'use client';
 import { useState, useEffect, useRef } from "react";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, RadarChart, Radar, PolarGrid, PolarAngleAxis } from "recharts";
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+
+// Client-side only Supabase — aman untuk SSR karena di-lazy init
+function getSupabase() {
+  if (typeof window === 'undefined') return null;
+  if (!window._supabase) {
+    window._supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+    );
+  }
+  return window._supabase;
+}
 
 const C = { crimson:"#C41E3A", gold:"#D4A017", dark:"#0F0F1A", emerald:"#1B6B3A", royal:"#2E5090", plum:"#6B3A7D", copper:"#C75B39", cream:"#FAF8F3", warmGray:"#F3F0EB" };
 
@@ -112,11 +124,11 @@ export default function App() {
   // 🔌 SUPABASE AUTH — Login & Register Sungguhan
   // ═══════════════════════════════════════
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    getSupabase().auth.getSession().then(({ data: { session } }) => {
       if (session?.user) { setUser(session.user); fetchProfile(session.user.id); }
       setAuthLoading(false);
     });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = getSupabase().auth.onAuthStateChange((event, session) => {
       if (session?.user) { setUser(session.user); fetchProfile(session.user.id); }
       else { setUser(null); setProfile(null); }
     });
@@ -124,14 +136,14 @@ export default function App() {
   }, []);
 
   async function fetchProfile(uid) {
-    const { data } = await supabase.from('profiles').select('*').eq('id', uid).single();
+    const { data } = await getSupabase().from('profiles').select('*').eq('id', uid).single();
     setProfile(data);
   }
 
   async function handleRegister() {
     setAuthError(""); setAuthSuccess("");
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const { data, error } = await getSupabase().auth.signUp({
         email: regForm.email, password: regForm.password,
         options: { data: { full_name: regForm.full_name, phone: regForm.phone, role: regForm.role, city: regForm.city, cabang_ldii: regForm.cabang_ldii } }
       });
@@ -144,14 +156,14 @@ export default function App() {
   async function handleLogin() {
     setAuthError("");
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email: loginForm.email, password: loginForm.password });
+      const { data, error } = await getSupabase().auth.signInWithPassword({ email: loginForm.email, password: loginForm.password });
       if (error) throw error;
       setLoginM(false); setLoginForm({ email:"", password:"" });
     } catch (e) { setAuthError(e.message); }
   }
 
   async function handleLogout() {
-    await supabase.auth.signOut();
+    await getSupabase().auth.signOut();
     setUser(null); setProfile(null); nav("home");
   }
 
@@ -162,40 +174,40 @@ export default function App() {
   useEffect(() => { if (user) { fetchMyInvestments(); fetchBmtHistory(); fetchNotifications(); } }, [user]);
 
   async function fetchProducts() {
-    const { data } = await supabase.from('products').select('*, seller:profiles!seller_id(full_name, city, phone)').eq('status', 'active').order('created_at', { ascending: false });
+    const { data } = await getSupabase().from('products').select('*, seller:profiles!seller_id(full_name, city, phone)').eq('status', 'active').order('created_at', { ascending: false });
     if (data?.length) setProducts(data.map(p => ({ ...p, img: getCatEmoji(p.category), reviews: [] })));
   }
   async function fetchCourses() {
-    const { data } = await supabase.from('courses').select('*, instructor:profiles!instructor_id(full_name), course_modules(*), course_quizzes(*)').eq('status', 'active');
+    const { data } = await getSupabase().from('courses').select('*, instructor:profiles!instructor_id(full_name), course_modules(*), course_quizzes(*)').eq('status', 'active');
     if (data?.length) setCourses(data);
   }
   async function fetchHibah() {
-    const { data } = await supabase.from('hibah_items').select('*, donor:profiles!donor_id(full_name, city)').order('created_at', { ascending: false });
+    const { data } = await getSupabase().from('hibah_items').select('*, donor:profiles!donor_id(full_name, city)').order('created_at', { ascending: false });
     if (data?.length) setHibahItems(data);
   }
   async function fetchInvestments() {
-    const { data } = await supabase.from('investment_companies').select('*, owner:profiles!owner_id(full_name)').eq('status', 'active');
+    const { data } = await getSupabase().from('investment_companies').select('*, owner:profiles!owner_id(full_name)').eq('status', 'active');
     if (data?.length) setInvestCompanies(data);
   }
   async function fetchJobs() {
-    const { data } = await supabase.from('jobs').select('*, company:profiles!company_id(full_name, city)').eq('status', 'active').order('created_at', { ascending: false });
+    const { data } = await getSupabase().from('jobs').select('*, company:profiles!company_id(full_name, city)').eq('status', 'active').order('created_at', { ascending: false });
     if (data?.length) setJobs(data);
   }
   async function fetchMyInvestments() {
-    const { data } = await supabase.from('investments').select('*, company:investment_companies(name, sector, city)').eq('investor_id', user.id);
+    const { data } = await getSupabase().from('investments').select('*, company:investment_companies(name, sector, city)').eq('investor_id', user.id);
     if (data) setMyInvestments(data);
   }
   async function fetchBmtHistory() {
-    const { data } = await supabase.from('bmt_applications').select('*').eq('applicant_id', user.id).order('created_at', { ascending: false });
+    const { data } = await getSupabase().from('bmt_applications').select('*').eq('applicant_id', user.id).order('created_at', { ascending: false });
     if (data) setBmtHistory(data);
   }
   async function fetchNotifications() {
-    const { data } = await supabase.from('notifications').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(10);
+    const { data } = await getSupabase().from('notifications').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(10);
     if (data) setNotifications(data);
   }
   async function fetchCourseProgress(courseId) {
     if (!user) return [];
-    const { data } = await supabase.from('course_progress').select('*').eq('user_id', user.id).eq('course_id', courseId);
+    const { data } = await getSupabase().from('course_progress').select('*').eq('user_id', user.id).eq('course_id', courseId);
     return data || [];
   }
 
@@ -212,15 +224,15 @@ export default function App() {
   async function handleCheckout(shippingName, shippingPhone, shippingAddress) {
     if (!user) { setLoginM(true); return; }
     const items = cart.map(x => ({ product_id: x.id, quantity: x.qty }));
-    const { data, error } = await supabase.from('orders').insert({
+    const { data, error } = await getSupabase().from('orders').insert({
       buyer_id: user.id, total_amount: cartTotal, shipping_name: shippingName, shipping_phone: shippingPhone, shipping_address: shippingAddress
     }).select().single();
     if (error) { alert("Error: " + error.message); return; }
     // Insert order items
     for (const item of cart) {
-      await supabase.from('order_items').insert({ order_id: data.id, product_id: item.id, seller_id: item.seller_id, quantity: item.qty, price: item.price, subtotal: item.price * item.qty });
+      await getSupabase().from('order_items').insert({ order_id: data.id, product_id: item.id, seller_id: item.seller_id, quantity: item.qty, price: item.price, subtotal: item.price * item.qty });
       // Reduce stock
-      await supabase.from('products').update({ stock: item.stock - item.qty, sold: (item.sold||0) + item.qty }).eq('id', item.id);
+      await getSupabase().from('products').update({ stock: item.stock - item.qty, sold: (item.sold||0) + item.qty }).eq('id', item.id);
     }
     setCart([]);
     alert(`✅ Pesanan #${data.id} berhasil! Total: ${fmt(cartTotal)}\nSeller akan dihubungi via WhatsApp.`);
@@ -231,7 +243,7 @@ export default function App() {
   // 📚 E-LEARNING: Tandai selesai
   async function handleMarkComplete(courseId, moduleId) {
     if (!user) { setLoginM(true); return; }
-    await supabase.from('course_progress').upsert({ user_id: user.id, course_id: courseId, module_id: moduleId, completed: true, completed_at: new Date().toISOString() }, { onConflict: 'user_id,course_id,module_id' });
+    await getSupabase().from('course_progress').upsert({ user_id: user.id, course_id: courseId, module_id: moduleId, completed: true, completed_at: new Date().toISOString() }, { onConflict: 'user_id,course_id,module_id' });
     setCompletedLessons(p => ({ ...p, [courseId]: [...(p[courseId]||[]), `m${moduleId}`] }));
   }
 
@@ -241,10 +253,10 @@ export default function App() {
     let correct = 0;
     quizzes.forEach((q, i) => { if (quizAnswers[i] === q.correct_answer) correct++; });
     const passed = correct >= Math.ceil(quizzes.length * 0.7);
-    await supabase.from('quiz_results').insert({ user_id: user.id, course_id: courseId, score: correct, total: quizzes.length, passed });
+    await getSupabase().from('quiz_results').insert({ user_id: user.id, course_id: courseId, score: correct, total: quizzes.length, passed });
     if (passed) {
       const certId = `CERT-${Date.now().toString(36).toUpperCase()}`;
-      await supabase.from('certificates').insert({ user_id: user.id, course_id: courseId, certificate_id: certId });
+      await getSupabase().from('certificates').insert({ user_id: user.id, course_id: courseId, certificate_id: certId });
       setCompletedLessons(p => ({ ...p, [courseId]: [...(p[courseId]||[]), "quiz"] }));
     }
     setQuizDone(true);
@@ -253,18 +265,18 @@ export default function App() {
   // 🎁 HIBAH: Ajukan
   async function handleHibahRequest(itemId) {
     if (!user) { setLoginM(true); return; }
-    const { error } = await supabase.from('hibah_requests').insert({ item_id: itemId, requester_id: user.id, reason: hibahReason, address: "Alamat akan dikonfirmasi" });
+    const { error } = await getSupabase().from('hibah_requests').insert({ item_id: itemId, requester_id: user.id, reason: hibahReason, address: "Alamat akan dikonfirmasi" });
     if (error) { alert("Error: " + error.message); return; }
     setHibahSent(p => [...p, itemId]); setHibahReq(null); setHibahReason("");
     // Notify donor
     const item = hibahItems.find(h => h.id === itemId);
-    if (item) await supabase.from('notifications').insert({ user_id: item.donor_id, title: "Pengajuan Hibah Baru", message: `Ada yang mengajukan "${item.name}"`, type: "hibah" });
+    if (item) await getSupabase().from('notifications').insert({ user_id: item.donor_id, title: "Pengajuan Hibah Baru", message: `Ada yang mengajukan "${item.name}"`, type: "hibah" });
   }
 
   // 🎁 HIBAH: Beri hibah
   async function handleHibahGive(formData) {
     if (!user) { setLoginM(true); return; }
-    const { error } = await supabase.from('hibah_items').insert({ donor_id: user.id, ...formData });
+    const { error } = await getSupabase().from('hibah_items').insert({ donor_id: user.id, ...formData });
     if (error) { alert("Error: " + error.message); return; }
     alert("✅ Barang hibah berhasil diupload!"); setHibahGive(false); fetchHibah();
   }
@@ -273,10 +285,10 @@ export default function App() {
   async function handleInvest(companyId) {
     if (!user) { setLoginM(true); return; }
     const company = investCompanies.find(c => c.id === companyId);
-    const { error } = await supabase.from('investments').insert({ investor_id: user.id, company_id: companyId, amount: investAmount, status: "pending" });
+    const { error } = await getSupabase().from('investments').insert({ investor_id: user.id, company_id: companyId, amount: investAmount, status: "pending" });
     if (error) { alert("Error: " + error.message); return; }
     // Update raised fund
-    if (company) await supabase.from('investment_companies').update({ raised_fund: (company.raised_fund||0) + investAmount }).eq('id', companyId);
+    if (company) await getSupabase().from('investment_companies').update({ raised_fund: (company.raised_fund||0) + investAmount }).eq('id', companyId);
     alert(`✅ Investasi Rp ${investAmount} Jt ke ${company?.name} berhasil diajukan!`);
     fetchInvestments(); fetchMyInvestments();
   }
@@ -284,12 +296,12 @@ export default function App() {
   // 💼 LOKER: Lamar
   async function handleApplyJob(jobId, coverLetter) {
     if (!user) { setLoginM(true); return; }
-    const { error } = await supabase.from('job_applications').insert({ job_id: jobId, applicant_id: user.id, cover_letter: coverLetter });
+    const { error } = await getSupabase().from('job_applications').insert({ job_id: jobId, applicant_id: user.id, cover_letter: coverLetter });
     if (error) { alert("Error: " + error.message); return; }
     const job = jobs.find(j => j.id === jobId);
     alert(`✅ Lamaran untuk "${job?.title}" berhasil dikirim!`);
     // Notify company
-    if (job) await supabase.from('notifications').insert({ user_id: job.company_id, title: "Lamaran Baru!", message: `Pelamar baru untuk "${job.title}"`, type: "job" });
+    if (job) await getSupabase().from('notifications').insert({ user_id: job.company_id, title: "Lamaran Baru!", message: `Pelamar baru untuk "${job.title}"`, type: "job" });
   }
 
   // 🏦 BMT: Ajukan pembiayaan
@@ -298,7 +310,7 @@ export default function App() {
     const margin = bmtType === "produktif" ? 0.012 : 0.015;
     const total = bmtAmt * (1 + margin * bmtTenor);
     const monthly = total / bmtTenor;
-    const { error } = await supabase.from('bmt_applications').insert({
+    const { error } = await getSupabase().from('bmt_applications').insert({
       applicant_id: user.id, amount: bmtAmt, tenor: bmtTenor, type: bmtType, purpose,
       monthly_payment: monthly, total_payment: total, margin_rate: margin
     });

@@ -1,8 +1,8 @@
-import { createClient } from '@supabase/supabase-js';
+import { getSupabase } from '@/lib/supabase';
 import { NextResponse } from 'next/server';
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
 async function checkAdmin() {
+  const supabase = getSupabase();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
@@ -11,7 +11,7 @@ async function checkAdmin() {
 
 // GET /api/admin/stats — Dashboard statistics
 export async function GET(request) {
-  try {
+  try { const supabase = getSupabase();
     const admin = await checkAdmin();
     if (!admin) return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
 
@@ -78,7 +78,7 @@ export async function GET(request) {
 
 // POST /api/admin/stats — Admin actions (approve, reject, update status)
 export async function POST(request) {
-  try {
+  try { const supabase = getSupabase();
     const admin = await checkAdmin();
     if (!admin) return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
 

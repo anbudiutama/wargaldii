@@ -1,10 +1,9 @@
-import { createClient } from '@supabase/supabase-js';
+import { getSupabase } from '@/lib/supabase';
 import { NextResponse } from 'next/server';
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
 // GET /api/jobs — List jobs with filters
 export async function GET(request) {
-  try {
+  try { const supabase = getSupabase();
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type');
     const city = searchParams.get('city');
@@ -37,7 +36,7 @@ export async function GET(request) {
 
 // POST /api/jobs — Create job (company) or apply (pencari kerja)
 export async function POST(request) {
-  try {
+  try { const supabase = getSupabase();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
