@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 
 // GET /api/jobs — List jobs with filters
 export async function GET(request) {
-  try { const supabase = getSupabase();
+  try { const supabase = getSupabase(); if(!supabase) return NextResponse.json({error:'Database not configured'},{status:503});
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type');
     const city = searchParams.get('city');
@@ -36,7 +36,7 @@ export async function GET(request) {
 
 // POST /api/jobs — Create job (company) or apply (pencari kerja)
 export async function POST(request) {
-  try { const supabase = getSupabase();
+  try { const supabase = getSupabase(); if(!supabase) return NextResponse.json({error:'Database not configured'},{status:503});
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 

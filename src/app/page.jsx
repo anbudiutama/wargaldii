@@ -3,14 +3,14 @@ import { useState, useEffect, useRef } from "react";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, RadarChart, Radar, PolarGrid, PolarAngleAxis } from "recharts";
 import { createClient } from '@supabase/supabase-js';
 
-// Client-side only Supabase — aman untuk SSR karena di-lazy init
+// Client-side only Supabase — tidak crash jika env var belum ada
 function getSupabase() {
   if (typeof window === 'undefined') return null;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) return null; // Jangan crash, return null
   if (!window._supabase) {
-    window._supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-    );
+    window._supabase = createClient(url, key);
   }
   return window._supabase;
 }
@@ -120,15 +120,21 @@ export default function App() {
   const [regForm, setRegForm] = useState({ full_name:"", email:"", phone:"", role:"pembelajar", city:"", cabang_ldii:"", password:"" });
   const [loginForm, setLoginForm] = useState({ email:"", password:"" });
 
+  // ═══ FORM MODALS (untuk input data baru) ═══
+  const [showProductForm, setShowProductForm] = useState(false);
+  const [showCourseForm, setShowCourseForm] = useState(false);
+  const [showJobForm, setShowJobForm] = useState(false);
+  const [showCompanyForm, setShowCompanyForm] = useState(false);
+
   // ═══════════════════════════════════════
   // 🔌 SUPABASE AUTH — Login & Register Sungguhan
   // ═══════════════════════════════════════
   useEffect(() => {
-    getSupabase().auth.getSession().then(({ data: { session } }) => {
+    getSupabase()?.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) { setUser(session.user); fetchProfile(session.user.id); }
       setAuthLoading(false);
     });
-    const { data: { subscription } } = getSupabase().auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = getSupabase()?.auth.onAuthStateChange((event, session) => {
       if (session?.user) { setUser(session.user); fetchProfile(session.user.id); }
       else { setUser(null); setProfile(null); }
     });
@@ -136,14 +142,14 @@ export default function App() {
   }, []);
 
   async function fetchProfile(uid) {
-    const { data } = await getSupabase().from('profiles').select('*').eq('id', uid).single();
+    const { data } = await getSupabase()?.from('profiles').select('*').eq('id', uid).single();
     setProfile(data);
   }
 
   async function handleRegister() {
     setAuthError(""); setAuthSuccess("");
     try {
-      const { data, error } = await getSupabase().auth.signUp({
+      const { data, error } = await getSupabase()?.auth.signUp({
         email: regForm.email, password: regForm.password,
         options: { data: { full_name: regForm.full_name, phone: regForm.phone, role: regForm.role, city: regForm.city, cabang_ldii: regForm.cabang_ldii } }
       });
@@ -156,14 +162,14 @@ export default function App() {
   async function handleLogin() {
     setAuthError("");
     try {
-      const { data, error } = await getSupabase().auth.signInWithPassword({ email: loginForm.email, password: loginForm.password });
+      const { data, error } = await getSupabase()?.auth.signInWithPassword({ email: loginForm.email, password: loginForm.password });
       if (error) throw error;
       setLoginM(false); setLoginForm({ email:"", password:"" });
     } catch (e) { setAuthError(e.message); }
   }
 
   async function handleLogout() {
-    await getSupabase().auth.signOut();
+    await getSupabase()?.auth.signOut();
     setUser(null); setProfile(null); nav("home");
   }
 
@@ -174,40 +180,40 @@ export default function App() {
   useEffect(() => { if (user) { fetchMyInvestments(); fetchBmtHistory(); fetchNotifications(); } }, [user]);
 
   async function fetchProducts() {
-    const { data } = await getSupabase().from('products').select('*, seller:profiles!seller_id(full_name, city, phone)').eq('status', 'active').order('created_at', { ascending: false });
+    const { data } = await getSupabase()?.from('products').select('*, seller:profiles!seller_id(full_name, city, phone)').eq('status', 'active').order('created_at', { ascending: false });
     if (data?.length) setProducts(data.map(p => ({ ...p, img: getCatEmoji(p.category), reviews: [] })));
   }
   async function fetchCourses() {
-    const { data } = await getSupabase().from('courses').select('*, instructor:profiles!instructor_id(full_name), course_modules(*), course_quizzes(*)').eq('status', 'active');
+    const { data } = await getSupabase()?.from('courses').select('*, instructor:profiles!instructor_id(full_name), course_modules(*), course_quizzes(*)').eq('status', 'active');
     if (data?.length) setCourses(data);
   }
   async function fetchHibah() {
-    const { data } = await getSupabase().from('hibah_items').select('*, donor:profiles!donor_id(full_name, city)').order('created_at', { ascending: false });
+    const { data } = await getSupabase()?.from('hibah_items').select('*, donor:profiles!donor_id(full_name, city)').order('created_at', { ascending: false });
     if (data?.length) setHibahItems(data);
   }
   async function fetchInvestments() {
-    const { data } = await getSupabase().from('investment_companies').select('*, owner:profiles!owner_id(full_name)').eq('status', 'active');
+    const { data } = await getSupabase()?.from('investment_companies').select('*, owner:profiles!owner_id(full_name)').eq('status', 'active');
     if (data?.length) setInvestCompanies(data);
   }
   async function fetchJobs() {
-    const { data } = await getSupabase().from('jobs').select('*, company:profiles!company_id(full_name, city)').eq('status', 'active').order('created_at', { ascending: false });
+    const { data } = await getSupabase()?.from('jobs').select('*, company:profiles!company_id(full_name, city)').eq('status', 'active').order('created_at', { ascending: false });
     if (data?.length) setJobs(data);
   }
   async function fetchMyInvestments() {
-    const { data } = await getSupabase().from('investments').select('*, company:investment_companies(name, sector, city)').eq('investor_id', user.id);
+    const { data } = await getSupabase()?.from('investments').select('*, company:investment_companies(name, sector, city)').eq('investor_id', user.id);
     if (data) setMyInvestments(data);
   }
   async function fetchBmtHistory() {
-    const { data } = await getSupabase().from('bmt_applications').select('*').eq('applicant_id', user.id).order('created_at', { ascending: false });
+    const { data } = await getSupabase()?.from('bmt_applications').select('*').eq('applicant_id', user.id).order('created_at', { ascending: false });
     if (data) setBmtHistory(data);
   }
   async function fetchNotifications() {
-    const { data } = await getSupabase().from('notifications').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(10);
+    const { data } = await getSupabase()?.from('notifications').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(10);
     if (data) setNotifications(data);
   }
   async function fetchCourseProgress(courseId) {
     if (!user) return [];
-    const { data } = await getSupabase().from('course_progress').select('*').eq('user_id', user.id).eq('course_id', courseId);
+    const { data } = await getSupabase()?.from('course_progress').select('*').eq('user_id', user.id).eq('course_id', courseId);
     return data || [];
   }
 
@@ -224,15 +230,15 @@ export default function App() {
   async function handleCheckout(shippingName, shippingPhone, shippingAddress) {
     if (!user) { setLoginM(true); return; }
     const items = cart.map(x => ({ product_id: x.id, quantity: x.qty }));
-    const { data, error } = await getSupabase().from('orders').insert({
+    const { data, error } = await getSupabase()?.from('orders').insert({
       buyer_id: user.id, total_amount: cartTotal, shipping_name: shippingName, shipping_phone: shippingPhone, shipping_address: shippingAddress
     }).select().single();
     if (error) { alert("Error: " + error.message); return; }
     // Insert order items
     for (const item of cart) {
-      await getSupabase().from('order_items').insert({ order_id: data.id, product_id: item.id, seller_id: item.seller_id, quantity: item.qty, price: item.price, subtotal: item.price * item.qty });
+      await getSupabase()?.from('order_items').insert({ order_id: data.id, product_id: item.id, seller_id: item.seller_id, quantity: item.qty, price: item.price, subtotal: item.price * item.qty });
       // Reduce stock
-      await getSupabase().from('products').update({ stock: item.stock - item.qty, sold: (item.sold||0) + item.qty }).eq('id', item.id);
+      await getSupabase()?.from('products').update({ stock: item.stock - item.qty, sold: (item.sold||0) + item.qty }).eq('id', item.id);
     }
     setCart([]);
     alert(`✅ Pesanan #${data.id} berhasil! Total: ${fmt(cartTotal)}\nSeller akan dihubungi via WhatsApp.`);
@@ -243,7 +249,7 @@ export default function App() {
   // 📚 E-LEARNING: Tandai selesai
   async function handleMarkComplete(courseId, moduleId) {
     if (!user) { setLoginM(true); return; }
-    await getSupabase().from('course_progress').upsert({ user_id: user.id, course_id: courseId, module_id: moduleId, completed: true, completed_at: new Date().toISOString() }, { onConflict: 'user_id,course_id,module_id' });
+    await getSupabase()?.from('course_progress').upsert({ user_id: user.id, course_id: courseId, module_id: moduleId, completed: true, completed_at: new Date().toISOString() }, { onConflict: 'user_id,course_id,module_id' });
     setCompletedLessons(p => ({ ...p, [courseId]: [...(p[courseId]||[]), `m${moduleId}`] }));
   }
 
@@ -253,10 +259,10 @@ export default function App() {
     let correct = 0;
     quizzes.forEach((q, i) => { if (quizAnswers[i] === q.correct_answer) correct++; });
     const passed = correct >= Math.ceil(quizzes.length * 0.7);
-    await getSupabase().from('quiz_results').insert({ user_id: user.id, course_id: courseId, score: correct, total: quizzes.length, passed });
+    await getSupabase()?.from('quiz_results').insert({ user_id: user.id, course_id: courseId, score: correct, total: quizzes.length, passed });
     if (passed) {
       const certId = `CERT-${Date.now().toString(36).toUpperCase()}`;
-      await getSupabase().from('certificates').insert({ user_id: user.id, course_id: courseId, certificate_id: certId });
+      await getSupabase()?.from('certificates').insert({ user_id: user.id, course_id: courseId, certificate_id: certId });
       setCompletedLessons(p => ({ ...p, [courseId]: [...(p[courseId]||[]), "quiz"] }));
     }
     setQuizDone(true);
@@ -265,18 +271,18 @@ export default function App() {
   // 🎁 HIBAH: Ajukan
   async function handleHibahRequest(itemId) {
     if (!user) { setLoginM(true); return; }
-    const { error } = await getSupabase().from('hibah_requests').insert({ item_id: itemId, requester_id: user.id, reason: hibahReason, address: "Alamat akan dikonfirmasi" });
+    const { error } = await getSupabase()?.from('hibah_requests').insert({ item_id: itemId, requester_id: user.id, reason: hibahReason, address: "Alamat akan dikonfirmasi" });
     if (error) { alert("Error: " + error.message); return; }
     setHibahSent(p => [...p, itemId]); setHibahReq(null); setHibahReason("");
     // Notify donor
     const item = hibahItems.find(h => h.id === itemId);
-    if (item) await getSupabase().from('notifications').insert({ user_id: item.donor_id, title: "Pengajuan Hibah Baru", message: `Ada yang mengajukan "${item.name}"`, type: "hibah" });
+    if (item) await getSupabase()?.from('notifications').insert({ user_id: item.donor_id, title: "Pengajuan Hibah Baru", message: `Ada yang mengajukan "${item.name}"`, type: "hibah" });
   }
 
   // 🎁 HIBAH: Beri hibah
   async function handleHibahGive(formData) {
     if (!user) { setLoginM(true); return; }
-    const { error } = await getSupabase().from('hibah_items').insert({ donor_id: user.id, ...formData });
+    const { error } = await getSupabase()?.from('hibah_items').insert({ donor_id: user.id, ...formData });
     if (error) { alert("Error: " + error.message); return; }
     alert("✅ Barang hibah berhasil diupload!"); setHibahGive(false); fetchHibah();
   }
@@ -285,10 +291,10 @@ export default function App() {
   async function handleInvest(companyId) {
     if (!user) { setLoginM(true); return; }
     const company = investCompanies.find(c => c.id === companyId);
-    const { error } = await getSupabase().from('investments').insert({ investor_id: user.id, company_id: companyId, amount: investAmount, status: "pending" });
+    const { error } = await getSupabase()?.from('investments').insert({ investor_id: user.id, company_id: companyId, amount: investAmount, status: "pending" });
     if (error) { alert("Error: " + error.message); return; }
     // Update raised fund
-    if (company) await getSupabase().from('investment_companies').update({ raised_fund: (company.raised_fund||0) + investAmount }).eq('id', companyId);
+    if (company) await getSupabase()?.from('investment_companies').update({ raised_fund: (company.raised_fund||0) + investAmount }).eq('id', companyId);
     alert(`✅ Investasi Rp ${investAmount} Jt ke ${company?.name} berhasil diajukan!`);
     fetchInvestments(); fetchMyInvestments();
   }
@@ -296,12 +302,12 @@ export default function App() {
   // 💼 LOKER: Lamar
   async function handleApplyJob(jobId, coverLetter) {
     if (!user) { setLoginM(true); return; }
-    const { error } = await getSupabase().from('job_applications').insert({ job_id: jobId, applicant_id: user.id, cover_letter: coverLetter });
+    const { error } = await getSupabase()?.from('job_applications').insert({ job_id: jobId, applicant_id: user.id, cover_letter: coverLetter });
     if (error) { alert("Error: " + error.message); return; }
     const job = jobs.find(j => j.id === jobId);
     alert(`✅ Lamaran untuk "${job?.title}" berhasil dikirim!`);
     // Notify company
-    if (job) await getSupabase().from('notifications').insert({ user_id: job.company_id, title: "Lamaran Baru!", message: `Pelamar baru untuk "${job.title}"`, type: "job" });
+    if (job) await getSupabase()?.from('notifications').insert({ user_id: job.company_id, title: "Lamaran Baru!", message: `Pelamar baru untuk "${job.title}"`, type: "job" });
   }
 
   // 🏦 BMT: Ajukan pembiayaan
@@ -310,12 +316,73 @@ export default function App() {
     const margin = bmtType === "produktif" ? 0.012 : 0.015;
     const total = bmtAmt * (1 + margin * bmtTenor);
     const monthly = total / bmtTenor;
-    const { error } = await getSupabase().from('bmt_applications').insert({
+    const { error } = await getSupabase()?.from('bmt_applications').insert({
       applicant_id: user.id, amount: bmtAmt, tenor: bmtTenor, type: bmtType, purpose,
       monthly_payment: monthly, total_payment: total, margin_rate: margin
     });
     if (error) { alert("Error: " + error.message); return; }
     alert("✅ Pengajuan pembiayaan berhasil dikirim ke BMT!"); setBmtSubmitted(false); setBmtTab("riwayat"); fetchBmtHistory();
+  }
+
+  // 🛒 MARKETPLACE: Upload produk baru
+  async function handleAddProduct(formData) {
+    if (!user) { setLoginM(true); return; }
+    const { error } = await getSupabase()?.from('products').insert({
+      seller_id: user.id, name: formData.name, description: formData.description,
+      price: parseInt(formData.price), stock: parseInt(formData.stock),
+      category: formData.category, image_url: formData.image_url || null, status: 'active'
+    });
+    if (error) { alert("Error: " + error.message); return; }
+    alert("✅ Produk berhasil ditambahkan!"); setShowProductForm(false); fetchProducts();
+  }
+
+  // 📚 E-LEARNING: Buat kursus baru + modul + quiz
+  async function handleAddCourse(formData) {
+    if (!user) { setLoginM(true); return; }
+    const { data: course, error } = await getSupabase()?.from('courses').insert({
+      instructor_id: user.id, title: formData.title, description: formData.description,
+      level: formData.level, duration: formData.duration, status: 'active'
+    }).select().single();
+    if (error) { alert("Error: " + error.message); return; }
+    // Insert modules
+    if (formData.modules?.length) {
+      await getSupabase()?.from('course_modules').insert(
+        formData.modules.map((m, i) => ({ course_id: course.id, title: m.title, content: m.content, type: m.type, duration: m.duration, sort_order: i }))
+      );
+    }
+    // Insert quizzes
+    if (formData.quizzes?.length) {
+      await getSupabase()?.from('course_quizzes').insert(
+        formData.quizzes.map((q, i) => ({ course_id: course.id, question: q.question, options: q.options, correct_answer: q.correct_answer, sort_order: i }))
+      );
+    }
+    alert("✅ Kursus berhasil dibuat!"); setShowCourseForm(false); fetchCourses();
+  }
+
+  // 💼 LOKER: Buat lowongan baru
+  async function handleAddJob(formData) {
+    if (!user) { setLoginM(true); return; }
+    const { error } = await getSupabase()?.from('jobs').insert({
+      company_id: user.id, title: formData.title, description: formData.description,
+      requirements: formData.requirements.split('\n').filter(r => r.trim()),
+      city: formData.city, type: formData.type, salary: formData.salary, status: 'active'
+    });
+    if (error) { alert("Error: " + error.message); return; }
+    alert("✅ Lowongan berhasil dibuat!"); setShowJobForm(false); fetchJobs();
+  }
+
+  // 📈 INVESTASI: Daftarkan perusahaan
+  async function handleAddCompany(formData) {
+    if (!user) { setLoginM(true); return; }
+    const { error } = await getSupabase()?.from('investment_companies').insert({
+      owner_id: user.id, name: formData.name, sector: formData.sector, city: formData.city,
+      description: formData.description, target_fund: parseInt(formData.target_fund),
+      return_rate: formData.return_rate, period: formData.period, akad: formData.akad,
+      revenue: formData.revenue, profit: formData.profit, growth: formData.growth,
+      open_for_investment: true, status: 'active'
+    });
+    if (error) { alert("Error: " + error.message); return; }
+    alert("✅ Perusahaan berhasil didaftarkan!"); setShowCompanyForm(false); fetchInvestments();
   }
 
   // ═══════════════════════════════════════
@@ -556,7 +623,10 @@ export default function App() {
       {page==="marketplace"&&!sub&&<div style={{ maxWidth:1280,margin:"0 auto",padding:"28px 24px 64px" }}>
         <button className="back" onClick={()=>nav("home")}>← Beranda</button>
         <h1 className="hlg" style={{ marginBottom:4 }}>🛒 Marketplace</h1>
-        <p style={{ color:"#aaa",fontSize:13,marginBottom:22 }}>{products.length} produk tersedia dari database</p>
+        <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8 }}>
+          <p style={{ color:"#aaa",fontSize:13 }}>{products.length} produk tersedia</p>
+          <button className="btn bp bs" onClick={()=>{if(!user){setLoginM(true);return}setShowProductForm(true)}}>➕ Upload Produk</button>
+        </div>
         <div style={{ display:"flex",gap:8,flexWrap:"wrap",marginBottom:20,alignItems:"center" }}>
           <div style={{ flex:"1 1 220px",position:"relative" }}><span style={{ position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",fontSize:13 }}>🔍</span><input className="inp" style={{ paddingLeft:34,marginBottom:0 }} placeholder="Cari produk..." value={mSearch} onChange={e=>setMSearch(e.target.value)}/></div>
           <div style={{ display:"flex",gap:4,flexWrap:"wrap" }}>{CATEGORIES.map(c=><button key={c} className={`tab ${mCat===c?"tab-a":""}`} onClick={()=>setMCat(c)}>{c}</button>)}</div>
@@ -625,7 +695,10 @@ export default function App() {
       {page==="elearning"&&!sub&&<div style={{ maxWidth:1280,margin:"0 auto",padding:"28px 24px 64px" }}>
         <button className="back" onClick={()=>nav("home")}>← Beranda</button>
         <h1 className="hlg" style={{ marginBottom:4 }}>📚 E-Learning</h1>
-        <p style={{ color:"#aaa",fontSize:13,marginBottom:22 }}>{courses.length} kursus tersedia</p>
+        <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8 }}>
+          <p style={{ color:"#aaa",fontSize:13 }}>{courses.length} kursus tersedia</p>
+          <button className="btn bp bs" onClick={()=>{if(!user){setLoginM(true);return}setShowCourseForm(true)}}>➕ Buat Kursus Baru</button>
+        </div>
         {courses.length===0?<div style={{ textAlign:"center",padding:60,color:"#ccc" }}><div style={{ fontSize:48 }}>📚</div><p style={{ marginTop:10 }}>Belum ada kursus. Tambahkan via Supabase Table Editor.</p></div>
         :<div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:16 }}>
           {courses.map((c,i)=><div key={c.id} className="card" style={{ cursor:"pointer",animation:`fadeUp .35s ease ${i*.06}s both` }} onClick={()=>nav("elearning",c.id)}>
@@ -737,13 +810,165 @@ export default function App() {
         <button className="btn bp" style={{ width:"100%" }} onClick={()=>handleHibahGive(gf)}>Upload Barang →</button></>})()}
       </div></div>}
 
+      {/* ═══ FORM: Upload Produk (Marketplace) ═══ */}
+      {showProductForm&&<div className="modal-bg" onClick={()=>setShowProductForm(false)}><div className="modal" onClick={e=>e.stopPropagation()}>
+        <button onClick={()=>setShowProductForm(false)} style={{ position:"absolute",top:12,right:16,background:"none",border:"none",fontSize:17,cursor:"pointer",color:"#ccc" }}>✕</button>
+        <h3 className="hmd" style={{ marginBottom:4 }}>🛒 Upload Produk Baru</h3>
+        <p style={{ fontSize:12,color:"#aaa",marginBottom:14 }}>Isi detail produk yang ingin dijual</p>
+        {(()=>{const [pf,setPf]=useState({name:"",description:"",price:"",stock:"",category:"Makanan",image_url:""});
+        return<>
+          <input className="inp" placeholder="Nama Produk *" value={pf.name} onChange={e=>setPf(p=>({...p,name:e.target.value}))}/>
+          <textarea className="inp" placeholder="Deskripsi produk..." style={{minHeight:60,resize:"vertical"}} value={pf.description} onChange={e=>setPf(p=>({...p,description:e.target.value}))}/>
+          <div style={{display:"flex",gap:8}}>
+            <input className="inp" placeholder="Harga (Rp) *" type="number" style={{flex:1}} value={pf.price} onChange={e=>setPf(p=>({...p,price:e.target.value}))}/>
+            <input className="inp" placeholder="Stok *" type="number" style={{flex:"0 0 100px"}} value={pf.stock} onChange={e=>setPf(p=>({...p,stock:e.target.value}))}/>
+          </div>
+          <select className="sel" value={pf.category} onChange={e=>setPf(p=>({...p,category:e.target.value}))}>
+            {CATEGORIES.filter(c=>c!=="Semua").map(c=><option key={c}>{c}</option>)}
+          </select>
+          <input className="inp" placeholder="URL Gambar (opsional)" value={pf.image_url} onChange={e=>setPf(p=>({...p,image_url:e.target.value}))}/>
+          <button className="btn bp" style={{width:"100%",opacity:pf.name&&pf.price&&pf.stock?1:.5}} disabled={!pf.name||!pf.price||!pf.stock} onClick={()=>handleAddProduct(pf)}>Upload Produk →</button>
+        </>})()}
+      </div></div>}
+
+      {/* ═══ FORM: Buat Kursus (E-Learning) ═══ */}
+      {showCourseForm&&<div className="modal-bg" onClick={()=>setShowCourseForm(false)}><div className="modal" style={{maxWidth:560}} onClick={e=>e.stopPropagation()}>
+        <button onClick={()=>setShowCourseForm(false)} style={{ position:"absolute",top:12,right:16,background:"none",border:"none",fontSize:17,cursor:"pointer",color:"#ccc" }}>✕</button>
+        <h3 className="hmd" style={{ marginBottom:4 }}>📚 Buat Kursus Baru</h3>
+        <p style={{ fontSize:12,color:"#aaa",marginBottom:14 }}>Isi detail kursus, materi, dan quiz</p>
+        {(()=>{
+          const [cf,setCf]=useState({title:"",description:"",level:"pemula",duration:""});
+          const [mods,setMods]=useState([{title:"",content:"",type:"article",duration:""}]);
+          const [qzs,setQzs]=useState([{question:"",options:["","","",""],correct_answer:0}]);
+          const [step,setStep]=useState(1);
+          return<>
+            {step===1&&<>
+              <div style={{fontSize:12,fontWeight:700,color:C.crimson,marginBottom:10}}>Langkah 1/3 — Info Kursus</div>
+              <input className="inp" placeholder="Judul Kursus *" value={cf.title} onChange={e=>setCf(p=>({...p,title:e.target.value}))}/>
+              <textarea className="inp" placeholder="Deskripsi kursus..." style={{minHeight:50,resize:"vertical"}} value={cf.description} onChange={e=>setCf(p=>({...p,description:e.target.value}))}/>
+              <div style={{display:"flex",gap:8}}>
+                <select className="sel" style={{flex:1}} value={cf.level} onChange={e=>setCf(p=>({...p,level:e.target.value}))}>
+                  <option value="pemula">Pemula</option><option value="menengah">Menengah</option><option value="lanjut">Lanjut</option><option value="semua">Semua Level</option>
+                </select>
+                <input className="inp" placeholder="Durasi (mis: 8 jam)" style={{flex:1}} value={cf.duration} onChange={e=>setCf(p=>({...p,duration:e.target.value}))}/>
+              </div>
+              <button className="btn bp" style={{width:"100%",opacity:cf.title?1:.5}} disabled={!cf.title} onClick={()=>setStep(2)}>Lanjut: Tambah Materi →</button>
+            </>}
+            {step===2&&<>
+              <div style={{fontSize:12,fontWeight:700,color:C.crimson,marginBottom:10}}>Langkah 2/3 — Materi ({mods.length} modul)</div>
+              {mods.map((m,i)=><div key={i} style={{background:"#faf8f5",borderRadius:12,padding:14,marginBottom:10}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+                  <span style={{fontSize:12,fontWeight:700,color:"#666"}}>Modul {i+1}</span>
+                  {mods.length>1&&<span style={{fontSize:11,color:"#ccc",cursor:"pointer"}} onClick={()=>setMods(p=>p.filter((_,j)=>j!==i))}>Hapus</span>}
+                </div>
+                <input className="inp" placeholder="Judul Modul *" value={m.title} onChange={e=>{const n=[...mods];n[i]={...n[i],title:e.target.value};setMods(n)}}/>
+                <div style={{display:"flex",gap:8}}>
+                  <select className="sel" style={{flex:"0 0 120px"}} value={m.type} onChange={e=>{const n=[...mods];n[i]={...n[i],type:e.target.value};setMods(n)}}>
+                    <option value="article">📄 Artikel</option><option value="video">🎬 Video</option>
+                  </select>
+                  <input className="inp" placeholder="Durasi" style={{flex:1}} value={m.duration} onChange={e=>{const n=[...mods];n[i]={...n[i],duration:e.target.value};setMods(n)}}/>
+                </div>
+                <textarea className="inp" placeholder="Isi materi..." style={{minHeight:50,resize:"vertical"}} value={m.content} onChange={e=>{const n=[...mods];n[i]={...n[i],content:e.target.value};setMods(n)}}/>
+              </div>)}
+              <button className="btn bo bs" style={{width:"100%",marginBottom:10}} onClick={()=>setMods(p=>[...p,{title:"",content:"",type:"article",duration:""}])}>+ Tambah Modul</button>
+              <div style={{display:"flex",gap:8}}>
+                <button className="btn bo bs" style={{flex:1}} onClick={()=>setStep(1)}>← Kembali</button>
+                <button className="btn bp bs" style={{flex:1}} onClick={()=>setStep(3)}>Lanjut: Quiz →</button>
+              </div>
+            </>}
+            {step===3&&<>
+              <div style={{fontSize:12,fontWeight:700,color:C.crimson,marginBottom:10}}>Langkah 3/3 — Quiz ({qzs.length} soal)</div>
+              {qzs.map((q,i)=><div key={i} style={{background:"#faf8f5",borderRadius:12,padding:14,marginBottom:10}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+                  <span style={{fontSize:12,fontWeight:700,color:"#666"}}>Soal {i+1}</span>
+                  {qzs.length>1&&<span style={{fontSize:11,color:"#ccc",cursor:"pointer"}} onClick={()=>setQzs(p=>p.filter((_,j)=>j!==i))}>Hapus</span>}
+                </div>
+                <input className="inp" placeholder="Pertanyaan *" value={q.question} onChange={e=>{const n=[...qzs];n[i]={...n[i],question:e.target.value};setQzs(n)}}/>
+                {q.options.map((o,oi)=><div key={oi} style={{display:"flex",gap:6,alignItems:"center",marginBottom:4}}>
+                  <input type="radio" name={`q${i}`} checked={q.correct_answer===oi} onChange={()=>{const n=[...qzs];n[i]={...n[i],correct_answer:oi};setQzs(n)}} style={{cursor:"pointer"}}/>
+                  <input className="inp" placeholder={`Opsi ${String.fromCharCode(65+oi)}`} style={{marginBottom:0,flex:1}} value={o} onChange={e=>{const n=[...qzs];n[i].options[oi]=e.target.value;setQzs(n)}}/>
+                </div>)}
+                <div style={{fontSize:10,color:"#aaa",marginTop:4}}>● Pilih radio button di samping jawaban yang benar</div>
+              </div>)}
+              <button className="btn bo bs" style={{width:"100%",marginBottom:10}} onClick={()=>setQzs(p=>[...p,{question:"",options:["","","",""],correct_answer:0}])}>+ Tambah Soal</button>
+              <div style={{display:"flex",gap:8}}>
+                <button className="btn bo bs" style={{flex:1}} onClick={()=>setStep(2)}>← Kembali</button>
+                <button className="btn bp bs" style={{flex:1}} onClick={()=>handleAddCourse({...cf,modules:mods.filter(m=>m.title),quizzes:qzs.filter(q=>q.question)})}>Publish Kursus 🚀</button>
+              </div>
+            </>}
+          </>})()}
+      </div></div>}
+
+      {/* ═══ FORM: Buat Lowongan Kerja ═══ */}
+      {showJobForm&&<div className="modal-bg" onClick={()=>setShowJobForm(false)}><div className="modal" onClick={e=>e.stopPropagation()}>
+        <button onClick={()=>setShowJobForm(false)} style={{ position:"absolute",top:12,right:16,background:"none",border:"none",fontSize:17,cursor:"pointer",color:"#ccc" }}>✕</button>
+        <h3 className="hmd" style={{ marginBottom:4 }}>💼 Buat Lowongan Baru</h3>
+        <p style={{ fontSize:12,color:"#aaa",marginBottom:14 }}>Isi detail posisi yang Anda butuhkan</p>
+        {(()=>{const [jf,setJf]=useState({title:"",description:"",requirements:"",city:profile?.city||"",type:"Full-time",salary:""});
+        return<>
+          <input className="inp" placeholder="Judul Posisi * (mis: Staff Marketing)" value={jf.title} onChange={e=>setJf(p=>({...p,title:e.target.value}))}/>
+          <textarea className="inp" placeholder="Deskripsi pekerjaan..." style={{minHeight:60,resize:"vertical"}} value={jf.description} onChange={e=>setJf(p=>({...p,description:e.target.value}))}/>
+          <textarea className="inp" placeholder="Persyaratan (satu per baris)&#10;Contoh:&#10;Lulusan S1&#10;Pengalaman min 1 tahun&#10;Menguasai Microsoft Office" style={{minHeight:80,resize:"vertical"}} value={jf.requirements} onChange={e=>setJf(p=>({...p,requirements:e.target.value}))}/>
+          <div style={{display:"flex",gap:8}}>
+            <input className="inp" placeholder="Kota *" style={{flex:1}} value={jf.city} onChange={e=>setJf(p=>({...p,city:e.target.value}))}/>
+            <select className="sel" style={{flex:1}} value={jf.type} onChange={e=>setJf(p=>({...p,type:e.target.value}))}>
+              <option>Full-time</option><option>Part-time</option><option>Freelance</option><option>Internship</option>
+            </select>
+          </div>
+          <input className="inp" placeholder="Gaji (mis: Rp 5-7 Jt/bln)" value={jf.salary} onChange={e=>setJf(p=>({...p,salary:e.target.value}))}/>
+          <button className="btn bp" style={{width:"100%",opacity:jf.title&&jf.city?1:.5}} disabled={!jf.title||!jf.city} onClick={()=>handleAddJob(jf)}>Publish Lowongan →</button>
+        </>})()}
+      </div></div>}
+
+      {/* ═══ FORM: Daftarkan Perusahaan (Investasi) ═══ */}
+      {showCompanyForm&&<div className="modal-bg" onClick={()=>setShowCompanyForm(false)}><div className="modal" style={{maxWidth:520}} onClick={e=>e.stopPropagation()}>
+        <button onClick={()=>setShowCompanyForm(false)} style={{ position:"absolute",top:12,right:16,background:"none",border:"none",fontSize:17,cursor:"pointer",color:"#ccc" }}>✕</button>
+        <h3 className="hmd" style={{ marginBottom:4 }}>📈 Daftarkan Perusahaan</h3>
+        <p style={{ fontSize:12,color:"#aaa",marginBottom:14 }}>Daftarkan usaha Anda untuk menerima investasi</p>
+        {(()=>{const [cf,setCf]=useState({name:"",sector:"Makanan & Minuman",city:profile?.city||"",description:"",target_fund:"",return_rate:"",period:"12 bulan",akad:"Musyarakah",revenue:"",profit:"",growth:""});
+        return<>
+          <input className="inp" placeholder="Nama Perusahaan/UB *" value={cf.name} onChange={e=>setCf(p=>({...p,name:e.target.value}))}/>
+          <div style={{display:"flex",gap:8}}>
+            <select className="sel" style={{flex:1}} value={cf.sector} onChange={e=>setCf(p=>({...p,sector:e.target.value}))}>
+              <option>Makanan & Minuman</option><option>Konveksi & Tekstil</option><option>Teknologi & IT</option>
+              <option>Pertanian & Peternakan</option><option>Furniture & Interior</option><option>Keuangan Syariah</option>
+              <option>Konstruksi</option><option>Kesehatan</option><option>Pendidikan</option><option>Lainnya</option>
+            </select>
+            <input className="inp" placeholder="Kota *" style={{flex:1}} value={cf.city} onChange={e=>setCf(p=>({...p,city:e.target.value}))}/>
+          </div>
+          <textarea className="inp" placeholder="Deskripsi usaha & rencana penggunaan dana..." style={{minHeight:60,resize:"vertical"}} value={cf.description} onChange={e=>setCf(p=>({...p,description:e.target.value}))}/>
+          <div style={{display:"flex",gap:8}}>
+            <input className="inp" placeholder="Target Dana (Jt) *" type="number" style={{flex:1}} value={cf.target_fund} onChange={e=>setCf(p=>({...p,target_fund:e.target.value}))}/>
+            <input className="inp" placeholder="Return Rate (mis: 15-18%)" style={{flex:1}} value={cf.return_rate} onChange={e=>setCf(p=>({...p,return_rate:e.target.value}))}/>
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            <select className="sel" style={{flex:1}} value={cf.akad} onChange={e=>setCf(p=>({...p,akad:e.target.value}))}>
+              <option>Musyarakah</option><option>Mudharabah</option><option>Murabahah</option>
+            </select>
+            <select className="sel" style={{flex:1}} value={cf.period} onChange={e=>setCf(p=>({...p,period:e.target.value}))}>
+              <option>6 bulan</option><option>12 bulan</option><option>18 bulan</option><option>24 bulan</option><option>36 bulan</option>
+            </select>
+          </div>
+          <div style={{fontSize:12,fontWeight:700,color:"#666",marginBottom:8,marginTop:4}}>Data Keuangan (opsional)</div>
+          <div style={{display:"flex",gap:8}}>
+            <input className="inp" placeholder="Revenue/thn" style={{flex:1}} value={cf.revenue} onChange={e=>setCf(p=>({...p,revenue:e.target.value}))}/>
+            <input className="inp" placeholder="Profit/thn" style={{flex:1}} value={cf.profit} onChange={e=>setCf(p=>({...p,profit:e.target.value}))}/>
+            <input className="inp" placeholder="Growth %" style={{flex:"0 0 80px"}} value={cf.growth} onChange={e=>setCf(p=>({...p,growth:e.target.value}))}/>
+          </div>
+          <button className="btn bp" style={{width:"100%",opacity:cf.name&&cf.city&&cf.target_fund?1:.5}} disabled={!cf.name||!cf.city||!cf.target_fund} onClick={()=>handleAddCompany(cf)}>Daftarkan Perusahaan →</button>
+        </>})()}
+      </div></div>}
+
       {/* INVESTASI — Connected */}
       {page==="investasi"&&!sub&&<div style={{ maxWidth:1280,margin:"0 auto",padding:"28px 24px 64px" }}>
         <button className="back" onClick={()=>nav("home")}>← Beranda</button>
         <h1 className="hlg" style={{ marginBottom:4 }}>📈 Investasi Syariah</h1>
-        <div style={{ display:"flex",gap:4,marginBottom:20,marginTop:12 }}>
-          <button className={`tab ${investTab==="explore"?"tab-a":""}`} onClick={()=>setInvestTab("explore")}>🔍 Jelajahi</button>
-          <button className={`tab ${investTab==="portfolio"?"tab-a":""}`} onClick={()=>setInvestTab("portfolio")}>💼 Portfolio</button>
+        <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,marginTop:12,flexWrap:"wrap",gap:8 }}>
+          <div style={{ display:"flex",gap:4 }}>
+            <button className={`tab ${investTab==="explore"?"tab-a":""}`} onClick={()=>setInvestTab("explore")}>🔍 Jelajahi</button>
+            <button className={`tab ${investTab==="portfolio"?"tab-a":""}`} onClick={()=>setInvestTab("portfolio")}>💼 Portfolio</button>
+          </div>
+          <button className="btn bp bs" onClick={()=>{if(!user){setLoginM(true);return}setShowCompanyForm(true)}}>➕ Daftarkan Perusahaan</button>
         </div>
         {investTab==="explore"&&<div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))",gap:16 }}>
           {investCompanies.map((c,i)=><div key={c.id} className="card" style={{ padding:22,animation:`fadeUp .35s ease ${i*.06}s both` }}>
@@ -786,7 +1011,10 @@ export default function App() {
       {page==="loker"&&!sub&&<div style={{ maxWidth:1280,margin:"0 auto",padding:"28px 24px 64px" }}>
         <button className="back" onClick={()=>nav("home")}>← Beranda</button>
         <h1 className="hlg" style={{ marginBottom:4 }}>💼 Lowongan Kerja</h1>
-        <p style={{ color:"#aaa",fontSize:13,marginBottom:16 }}>{jobs.length} lowongan tersedia</p>
+        <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8 }}>
+          <p style={{ color:"#aaa",fontSize:13 }}>{jobs.length} lowongan tersedia</p>
+          <button className="btn bp bs" onClick={()=>{if(!user){setLoginM(true);return}setShowJobForm(true)}}>➕ Buat Lowongan</button>
+        </div>
         <div style={{ display:"flex",gap:8,flexWrap:"wrap",marginBottom:16 }}>
           <div style={{ flex:"1 1 200px",position:"relative" }}><span style={{ position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",fontSize:13 }}>🔍</span><input className="inp" style={{ paddingLeft:34,marginBottom:0 }} placeholder="Cari posisi..." value={lokerSearch} onChange={e=>setLokerSearch(e.target.value)}/></div>
           {["Semua","Full-time","Part-time","Freelance"].map(t=><button key={t} className={`tab ${lokerType===t?"tab-a":""}`} onClick={()=>setLokerType(t)}>{t}</button>)}

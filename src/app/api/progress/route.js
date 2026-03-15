@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 
 // POST /api/progress — Tandai modul selesai
 export async function POST(request) {
-  try { const supabase = getSupabase();
+  try { const supabase = getSupabase(); if(!supabase) return NextResponse.json({error:'Database not configured'},{status:503});
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 

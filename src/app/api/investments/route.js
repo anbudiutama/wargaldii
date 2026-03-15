@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 
 // GET /api/investments — List companies or user portfolio
 export async function GET(request) {
-  try { const supabase = getSupabase();
+  try { const supabase = getSupabase(); if(!supabase) return NextResponse.json({error:'Database not configured'},{status:503});
     const { searchParams } = new URL(request.url);
     const portfolio = searchParams.get('portfolio');
     const company_id = searchParams.get('id');
@@ -40,7 +40,7 @@ export async function GET(request) {
 
 // POST /api/investments — Ajukan investasi
 export async function POST(request) {
-  try { const supabase = getSupabase();
+  try { const supabase = getSupabase(); if(!supabase) return NextResponse.json({error:'Database not configured'},{status:503});
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 

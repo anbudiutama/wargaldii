@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 
 // GET /api/bmt — Get user's BMT history
 export async function GET(request) {
-  try { const supabase = getSupabase();
+  try { const supabase = getSupabase(); if(!supabase) return NextResponse.json({error:'Database not configured'},{status:503});
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
@@ -27,7 +27,7 @@ export async function GET(request) {
 
 // POST /api/bmt — Submit new financing application
 export async function POST(request) {
-  try { const supabase = getSupabase();
+  try { const supabase = getSupabase(); if(!supabase) return NextResponse.json({error:'Database not configured'},{status:503});
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 

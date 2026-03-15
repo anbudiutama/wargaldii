@@ -11,7 +11,7 @@ async function checkAdmin() {
 
 // GET /api/admin/stats — Dashboard statistics
 export async function GET(request) {
-  try { const supabase = getSupabase();
+  try { const supabase = getSupabase(); if(!supabase) return NextResponse.json({error:'Database not configured'},{status:503});
     const admin = await checkAdmin();
     if (!admin) return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
 
@@ -78,7 +78,7 @@ export async function GET(request) {
 
 // POST /api/admin/stats — Admin actions (approve, reject, update status)
 export async function POST(request) {
-  try { const supabase = getSupabase();
+  try { const supabase = getSupabase(); if(!supabase) return NextResponse.json({error:'Database not configured'},{status:503});
     const admin = await checkAdmin();
     if (!admin) return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
 

@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 
 // GET /api/products — Ambil semua produk (dengan filter)
 export async function GET(request) {
-  try { const supabase = getSupabase();
+  try { const supabase = getSupabase(); if(!supabase) return NextResponse.json({error:'Database not configured'},{status:503});
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category');
     const search = searchParams.get('search');
@@ -34,7 +34,7 @@ export async function GET(request) {
 
 // POST /api/products — Tambah produk baru (seller only)
 export async function POST(request) {
-  try { const supabase = getSupabase();
+  try { const supabase = getSupabase(); if(!supabase) return NextResponse.json({error:'Database not configured'},{status:503});
     const body = await request.json();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

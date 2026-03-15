@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 
 // POST /api/auth/login
 export async function POST(request) {
-  try { const supabase = getSupabase();
+  try { const supabase = getSupabase(); if(!supabase) return NextResponse.json({error:'Database not configured'},{status:503});
     const { email, password } = await request.json();
 
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });

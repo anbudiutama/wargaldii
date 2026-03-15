@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 
 // POST /api/auth/register — Daftar akun baru
 export async function POST(request) {
-  try { const supabase = getSupabase();
+  try { const supabase = getSupabase(); if(!supabase) return NextResponse.json({error:'Database not configured'},{status:503});
     const { email, password, full_name, phone, role, city, cabang_ldii } = await request.json();
 
     // Validate

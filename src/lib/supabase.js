@@ -2,21 +2,16 @@ import { createClient } from '@supabase/supabase-js';
 
 let _supabase = null;
 
-// Lazy init — hanya buat client saat dipanggil, bukan saat import
+// Lazy init — hanya buat client saat dipanggil, TIDAK crash jika env var kosong
 export function getSupabase() {
   if (!_supabase) {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    if (!url || !key) throw new Error('Supabase env vars not set');
+    if (!url || !key) {
+      console.warn('Supabase env vars not set — running without database');
+      return null;
+    }
     _supabase = createClient(url, key);
   }
   return _supabase;
 }
-
-// Untuk client-side (React component) — tetap bisa import langsung
-export const supabase = typeof window !== 'undefined'
-  ? createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-    )
-  : null;

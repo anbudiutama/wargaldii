@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 
 // GET /api/hibah — Ambil semua barang hibah
 export async function GET(request) {
-  try { const supabase = getSupabase();
+  try { const supabase = getSupabase(); if(!supabase) return NextResponse.json({error:'Database not configured'},{status:503});
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status') || 'available';
     const my = searchParams.get('my'); // 'donated' or 'requested'
@@ -32,7 +32,7 @@ export async function GET(request) {
 
 // POST /api/hibah — Beri hibah (upload barang) ATAU ajukan (request barang)
 export async function POST(request) {
-  try { const supabase = getSupabase();
+  try { const supabase = getSupabase(); if(!supabase) return NextResponse.json({error:'Database not configured'},{status:503});
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
