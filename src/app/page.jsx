@@ -126,6 +126,21 @@ export default function App() {
   const [showJobForm, setShowJobForm] = useState(false);
   const [showCompanyForm, setShowCompanyForm] = useState(false);
 
+  // ═══ FORM DATA (semua di top-level agar tidak melanggar rules of hooks) ═══
+  const [productForm, setProductForm] = useState({name:"",description:"",price:"",stock:"",category:"Makanan",image_url:""});
+  const [hibahForm, setHibahForm] = useState({name:"",description:"",condition:"Baik (80%)",category:"Elektronik",city:""});
+  const [courseForm, setCourseForm] = useState({title:"",description:"",level:"pemula",duration:""});
+  const [courseMods, setCourseMods] = useState([{title:"",content:"",type:"article",duration:""}]);
+  const [courseQuizzes, setCourseQuizzes] = useState([{question:"",options:["","","",""],correct_answer:0}]);
+  const [courseStep, setCourseStep] = useState(1);
+  const [jobForm, setJobForm] = useState({title:"",description:"",requirements:"",city:"",type:"Full-time",salary:""});
+  const [companyForm, setCompanyForm] = useState({name:"",sector:"Makanan & Minuman",city:"",description:"",target_fund:"",return_rate:"",period:"12 bulan",akad:"Musyarakah",revenue:"",profit:"",growth:""});
+  const [checkoutName, setCheckoutName] = useState("");
+  const [checkoutPhone, setCheckoutPhone] = useState("");
+  const [checkoutAddr, setCheckoutAddr] = useState("");
+  const [coverLetter, setCoverLetter] = useState("");
+  const [bmtPurpose, setBmtPurpose] = useState("");
+
   // ═══════════════════════════════════════
   // 🔌 SUPABASE AUTH — Login & Register Sungguhan
   // ═══════════════════════════════════════
@@ -667,11 +682,7 @@ export default function App() {
       </div>})()}
 
       {/* CHECKOUT — Real order creation */}
-      {page==="checkout"&&(()=>{
-        const [sName,setSName]=useState(profile?.full_name||"");
-        const [sPhone,setSPhone]=useState(profile?.phone||"");
-        const [sAddr,setSAddr]=useState("");
-        return<div style={{ maxWidth:640,margin:"0 auto",padding:"28px 24px 64px" }}>
+      {page==="checkout"&&<div style={{ maxWidth:640,margin:"0 auto",padding:"28px 24px 64px" }}>
           <button className="back" onClick={()=>nav("marketplace")}>← Marketplace</button>
           <h1 className="hlg" style={{ marginBottom:20 }}>Checkout</h1>
           {!user&&<div className="err">Anda harus login untuk checkout. <span style={{cursor:"pointer",textDecoration:"underline"}} onClick={()=>setLoginM(true)}>Login sekarang</span></div>}
@@ -682,14 +693,13 @@ export default function App() {
           </div>)}
           <div className="card" style={{ padding:20,marginTop:16 }}>
             <h3 className="hmd" style={{ marginBottom:14 }}>Alamat Pengiriman</h3>
-            <input className="inp" placeholder="Nama Penerima" value={sName} onChange={e=>setSName(e.target.value)}/>
-            <input className="inp" placeholder="No. WhatsApp" value={sPhone} onChange={e=>setSPhone(e.target.value)}/>
-            <textarea className="inp" placeholder="Alamat lengkap..." style={{ minHeight:60,resize:"vertical" }} value={sAddr} onChange={e=>setSAddr(e.target.value)}/>
+            <input className="inp" placeholder="Nama Penerima" value={checkoutName} onChange={e=>setCheckoutName(e.target.value)}/>
+            <input className="inp" placeholder="No. WhatsApp" value={checkoutPhone} onChange={e=>setCheckoutPhone(e.target.value)}/>
+            <textarea className="inp" placeholder="Alamat lengkap..." style={{ minHeight:60,resize:"vertical" }} value={checkoutAddr} onChange={e=>setCheckoutAddr(e.target.value)}/>
             <div style={{ display:"flex",justifyContent:"space-between",padding:"12px 0",borderTop:`2px solid ${C.crimson}20` }}><span style={{ fontWeight:800,fontSize:16 }}>Total</span><span style={{ fontWeight:900,fontSize:20,fontFamily:"'DM Serif Display'",color:C.crimson }}>{fmt(cartTotal)}</span></div>
-            <button className="btn bp" style={{ width:"100%",marginTop:8,opacity:!user?.5:1 }} disabled={!user} onClick={()=>handleCheckout(sName,sPhone,sAddr)}>Bayar & Pesan →</button>
+            <button className="btn bp" style={{ width:"100%",marginTop:8,opacity:!user?.5:1 }} disabled={!user} onClick={()=>handleCheckout(checkoutName,checkoutPhone,checkoutAddr)}>Bayar & Pesan →</button>
           </div>
-        </div>
-      })()}
+      </div>}
 
       {/* E-LEARNING — Data dari Supabase */}
       {page==="elearning"&&!sub&&<div style={{ maxWidth:1280,margin:"0 auto",padding:"28px 24px 64px" }}>
@@ -801,13 +811,12 @@ export default function App() {
       {hibahGive&&<div className="modal-bg" onClick={()=>setHibahGive(false)}><div className="modal" onClick={e=>e.stopPropagation()}>
         <button onClick={()=>setHibahGive(false)} style={{ position:"absolute",top:12,right:16,background:"none",border:"none",fontSize:17,cursor:"pointer",color:"#ccc" }}>✕</button>
         <h3 className="hmd" style={{ marginBottom:12 }}>🤲 Beri Hibah</h3>
-        {(()=>{const [gf,setGf]=useState({name:"",description:"",condition:"Baik (80%)",category:"Elektronik",city:profile?.city||""});
-        return<><input className="inp" placeholder="Nama Barang" value={gf.name} onChange={e=>setGf(p=>({...p,name:e.target.value}))}/>
-        <select className="sel" value={gf.category} onChange={e=>setGf(p=>({...p,category:e.target.value}))}><option>Elektronik</option><option>Furniture</option><option>Buku</option><option>Pakaian</option><option>Peralatan Rumah</option><option>Lainnya</option></select>
-        <select className="sel" value={gf.condition} onChange={e=>setGf(p=>({...p,condition:e.target.value}))}><option>Sangat Baik (90%+)</option><option>Baik (80%)</option><option>Cukup Baik (70%)</option><option>Layak Pakai (60%)</option></select>
-        <textarea className="inp" placeholder="Deskripsi barang..." style={{ minHeight:60 }} value={gf.description} onChange={e=>setGf(p=>({...p,description:e.target.value}))}/>
-        <input className="inp" placeholder="Kota" value={gf.city} onChange={e=>setGf(p=>({...p,city:e.target.value}))}/>
-        <button className="btn bp" style={{ width:"100%" }} onClick={()=>handleHibahGive(gf)}>Upload Barang →</button></>})()}
+        <input className="inp" placeholder="Nama Barang" value={hibahForm.name} onChange={e=>setHibahForm(p=>({...p,name:e.target.value}))}/>
+        <select className="sel" value={hibahForm.category} onChange={e=>setHibahForm(p=>({...p,category:e.target.value}))}><option>Elektronik</option><option>Furniture</option><option>Buku</option><option>Pakaian</option><option>Peralatan Rumah</option><option>Lainnya</option></select>
+        <select className="sel" value={hibahForm.condition} onChange={e=>setHibahForm(p=>({...p,condition:e.target.value}))}><option>Sangat Baik (90%+)</option><option>Baik (80%)</option><option>Cukup Baik (70%)</option><option>Layak Pakai (60%)</option></select>
+        <textarea className="inp" placeholder="Deskripsi barang..." style={{ minHeight:60 }} value={hibahForm.description} onChange={e=>setHibahForm(p=>({...p,description:e.target.value}))}/>
+        <input className="inp" placeholder="Kota" value={hibahForm.city} onChange={e=>setHibahForm(p=>({...p,city:e.target.value}))}/>
+        <button className="btn bp" style={{ width:"100%" }} onClick={()=>handleHibahGive(hibahForm)}>Upload Barang →</button>
       </div></div>}
 
       {/* ═══ FORM: Upload Produk (Marketplace) ═══ */}
@@ -815,20 +824,17 @@ export default function App() {
         <button onClick={()=>setShowProductForm(false)} style={{ position:"absolute",top:12,right:16,background:"none",border:"none",fontSize:17,cursor:"pointer",color:"#ccc" }}>✕</button>
         <h3 className="hmd" style={{ marginBottom:4 }}>🛒 Upload Produk Baru</h3>
         <p style={{ fontSize:12,color:"#aaa",marginBottom:14 }}>Isi detail produk yang ingin dijual</p>
-        {(()=>{const [pf,setPf]=useState({name:"",description:"",price:"",stock:"",category:"Makanan",image_url:""});
-        return<>
-          <input className="inp" placeholder="Nama Produk *" value={pf.name} onChange={e=>setPf(p=>({...p,name:e.target.value}))}/>
-          <textarea className="inp" placeholder="Deskripsi produk..." style={{minHeight:60,resize:"vertical"}} value={pf.description} onChange={e=>setPf(p=>({...p,description:e.target.value}))}/>
-          <div style={{display:"flex",gap:8}}>
-            <input className="inp" placeholder="Harga (Rp) *" type="number" style={{flex:1}} value={pf.price} onChange={e=>setPf(p=>({...p,price:e.target.value}))}/>
-            <input className="inp" placeholder="Stok *" type="number" style={{flex:"0 0 100px"}} value={pf.stock} onChange={e=>setPf(p=>({...p,stock:e.target.value}))}/>
-          </div>
-          <select className="sel" value={pf.category} onChange={e=>setPf(p=>({...p,category:e.target.value}))}>
-            {CATEGORIES.filter(c=>c!=="Semua").map(c=><option key={c}>{c}</option>)}
-          </select>
-          <input className="inp" placeholder="URL Gambar (opsional)" value={pf.image_url} onChange={e=>setPf(p=>({...p,image_url:e.target.value}))}/>
-          <button className="btn bp" style={{width:"100%",opacity:pf.name&&pf.price&&pf.stock?1:.5}} disabled={!pf.name||!pf.price||!pf.stock} onClick={()=>handleAddProduct(pf)}>Upload Produk →</button>
-        </>})()}
+        <input className="inp" placeholder="Nama Produk *" value={productForm.name} onChange={e=>setProductForm(p=>({...p,name:e.target.value}))}/>
+        <textarea className="inp" placeholder="Deskripsi produk..." style={{minHeight:60,resize:"vertical"}} value={productForm.description} onChange={e=>setProductForm(p=>({...p,description:e.target.value}))}/>
+        <div style={{display:"flex",gap:8}}>
+          <input className="inp" placeholder="Harga (Rp) *" type="number" style={{flex:1}} value={productForm.price} onChange={e=>setProductForm(p=>({...p,price:e.target.value}))}/>
+          <input className="inp" placeholder="Stok *" type="number" style={{flex:"0 0 100px"}} value={productForm.stock} onChange={e=>setProductForm(p=>({...p,stock:e.target.value}))}/>
+        </div>
+        <select className="sel" value={productForm.category} onChange={e=>setProductForm(p=>({...p,category:e.target.value}))}>
+          {CATEGORIES.filter(c=>c!=="Semua").map(c=><option key={c}>{c}</option>)}
+        </select>
+        <input className="inp" placeholder="URL Gambar (opsional)" value={productForm.image_url} onChange={e=>setProductForm(p=>({...p,image_url:e.target.value}))}/>
+        <button className="btn bp" style={{width:"100%",opacity:productForm.name&&productForm.price&&productForm.stock?1:.5}} disabled={!productForm.name||!productForm.price||!productForm.stock} onClick={()=>handleAddProduct(productForm)}>Upload Produk →</button>
       </div></div>}
 
       {/* ═══ FORM: Buat Kursus (E-Learning) ═══ */}
@@ -836,67 +842,60 @@ export default function App() {
         <button onClick={()=>setShowCourseForm(false)} style={{ position:"absolute",top:12,right:16,background:"none",border:"none",fontSize:17,cursor:"pointer",color:"#ccc" }}>✕</button>
         <h3 className="hmd" style={{ marginBottom:4 }}>📚 Buat Kursus Baru</h3>
         <p style={{ fontSize:12,color:"#aaa",marginBottom:14 }}>Isi detail kursus, materi, dan quiz</p>
-        {(()=>{
-          const [cf,setCf]=useState({title:"",description:"",level:"pemula",duration:""});
-          const [mods,setMods]=useState([{title:"",content:"",type:"article",duration:""}]);
-          const [qzs,setQzs]=useState([{question:"",options:["","","",""],correct_answer:0}]);
-          const [step,setStep]=useState(1);
-          return<>
-            {step===1&&<>
-              <div style={{fontSize:12,fontWeight:700,color:C.crimson,marginBottom:10}}>Langkah 1/3 — Info Kursus</div>
-              <input className="inp" placeholder="Judul Kursus *" value={cf.title} onChange={e=>setCf(p=>({...p,title:e.target.value}))}/>
-              <textarea className="inp" placeholder="Deskripsi kursus..." style={{minHeight:50,resize:"vertical"}} value={cf.description} onChange={e=>setCf(p=>({...p,description:e.target.value}))}/>
-              <div style={{display:"flex",gap:8}}>
-                <select className="sel" style={{flex:1}} value={cf.level} onChange={e=>setCf(p=>({...p,level:e.target.value}))}>
-                  <option value="pemula">Pemula</option><option value="menengah">Menengah</option><option value="lanjut">Lanjut</option><option value="semua">Semua Level</option>
-                </select>
-                <input className="inp" placeholder="Durasi (mis: 8 jam)" style={{flex:1}} value={cf.duration} onChange={e=>setCf(p=>({...p,duration:e.target.value}))}/>
-              </div>
-              <button className="btn bp" style={{width:"100%",opacity:cf.title?1:.5}} disabled={!cf.title} onClick={()=>setStep(2)}>Lanjut: Tambah Materi →</button>
-            </>}
-            {step===2&&<>
-              <div style={{fontSize:12,fontWeight:700,color:C.crimson,marginBottom:10}}>Langkah 2/3 — Materi ({mods.length} modul)</div>
-              {mods.map((m,i)=><div key={i} style={{background:"#faf8f5",borderRadius:12,padding:14,marginBottom:10}}>
-                <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
-                  <span style={{fontSize:12,fontWeight:700,color:"#666"}}>Modul {i+1}</span>
-                  {mods.length>1&&<span style={{fontSize:11,color:"#ccc",cursor:"pointer"}} onClick={()=>setMods(p=>p.filter((_,j)=>j!==i))}>Hapus</span>}
-                </div>
-                <input className="inp" placeholder="Judul Modul *" value={m.title} onChange={e=>{const n=[...mods];n[i]={...n[i],title:e.target.value};setMods(n)}}/>
-                <div style={{display:"flex",gap:8}}>
-                  <select className="sel" style={{flex:"0 0 120px"}} value={m.type} onChange={e=>{const n=[...mods];n[i]={...n[i],type:e.target.value};setMods(n)}}>
-                    <option value="article">📄 Artikel</option><option value="video">🎬 Video</option>
-                  </select>
-                  <input className="inp" placeholder="Durasi" style={{flex:1}} value={m.duration} onChange={e=>{const n=[...mods];n[i]={...n[i],duration:e.target.value};setMods(n)}}/>
-                </div>
-                <textarea className="inp" placeholder="Isi materi..." style={{minHeight:50,resize:"vertical"}} value={m.content} onChange={e=>{const n=[...mods];n[i]={...n[i],content:e.target.value};setMods(n)}}/>
-              </div>)}
-              <button className="btn bo bs" style={{width:"100%",marginBottom:10}} onClick={()=>setMods(p=>[...p,{title:"",content:"",type:"article",duration:""}])}>+ Tambah Modul</button>
-              <div style={{display:"flex",gap:8}}>
-                <button className="btn bo bs" style={{flex:1}} onClick={()=>setStep(1)}>← Kembali</button>
-                <button className="btn bp bs" style={{flex:1}} onClick={()=>setStep(3)}>Lanjut: Quiz →</button>
-              </div>
-            </>}
-            {step===3&&<>
-              <div style={{fontSize:12,fontWeight:700,color:C.crimson,marginBottom:10}}>Langkah 3/3 — Quiz ({qzs.length} soal)</div>
-              {qzs.map((q,i)=><div key={i} style={{background:"#faf8f5",borderRadius:12,padding:14,marginBottom:10}}>
-                <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
-                  <span style={{fontSize:12,fontWeight:700,color:"#666"}}>Soal {i+1}</span>
-                  {qzs.length>1&&<span style={{fontSize:11,color:"#ccc",cursor:"pointer"}} onClick={()=>setQzs(p=>p.filter((_,j)=>j!==i))}>Hapus</span>}
-                </div>
-                <input className="inp" placeholder="Pertanyaan *" value={q.question} onChange={e=>{const n=[...qzs];n[i]={...n[i],question:e.target.value};setQzs(n)}}/>
-                {q.options.map((o,oi)=><div key={oi} style={{display:"flex",gap:6,alignItems:"center",marginBottom:4}}>
-                  <input type="radio" name={`q${i}`} checked={q.correct_answer===oi} onChange={()=>{const n=[...qzs];n[i]={...n[i],correct_answer:oi};setQzs(n)}} style={{cursor:"pointer"}}/>
-                  <input className="inp" placeholder={`Opsi ${String.fromCharCode(65+oi)}`} style={{marginBottom:0,flex:1}} value={o} onChange={e=>{const n=[...qzs];n[i].options[oi]=e.target.value;setQzs(n)}}/>
-                </div>)}
-                <div style={{fontSize:10,color:"#aaa",marginTop:4}}>● Pilih radio button di samping jawaban yang benar</div>
-              </div>)}
-              <button className="btn bo bs" style={{width:"100%",marginBottom:10}} onClick={()=>setQzs(p=>[...p,{question:"",options:["","","",""],correct_answer:0}])}>+ Tambah Soal</button>
-              <div style={{display:"flex",gap:8}}>
-                <button className="btn bo bs" style={{flex:1}} onClick={()=>setStep(2)}>← Kembali</button>
-                <button className="btn bp bs" style={{flex:1}} onClick={()=>handleAddCourse({...cf,modules:mods.filter(m=>m.title),quizzes:qzs.filter(q=>q.question)})}>Publish Kursus 🚀</button>
-              </div>
-            </>}
-          </>})()}
+        {courseStep===1&&<>
+          <div style={{fontSize:12,fontWeight:700,color:C.crimson,marginBottom:10}}>Langkah 1/3 — Info Kursus</div>
+          <input className="inp" placeholder="Judul Kursus *" value={courseForm.title} onChange={e=>setCourseForm(p=>({...p,title:e.target.value}))}/>
+          <textarea className="inp" placeholder="Deskripsi kursus..." style={{minHeight:50,resize:"vertical"}} value={courseForm.description} onChange={e=>setCourseForm(p=>({...p,description:e.target.value}))}/>
+          <div style={{display:"flex",gap:8}}>
+            <select className="sel" style={{flex:1}} value={courseForm.level} onChange={e=>setCourseForm(p=>({...p,level:e.target.value}))}>
+              <option value="pemula">Pemula</option><option value="menengah">Menengah</option><option value="lanjut">Lanjut</option><option value="semua">Semua Level</option>
+            </select>
+            <input className="inp" placeholder="Durasi (mis: 8 jam)" style={{flex:1}} value={courseForm.duration} onChange={e=>setCourseForm(p=>({...p,duration:e.target.value}))}/>
+          </div>
+          <button className="btn bp" style={{width:"100%",opacity:courseForm.title?1:.5}} disabled={!courseForm.title} onClick={()=>setCourseStep(2)}>Lanjut: Tambah Materi →</button>
+        </>}
+        {courseStep===2&&<>
+          <div style={{fontSize:12,fontWeight:700,color:C.crimson,marginBottom:10}}>Langkah 2/3 — Materi ({courseMods.length} modul)</div>
+          {courseMods.map((m,i)=><div key={i} style={{background:"#faf8f5",borderRadius:12,padding:14,marginBottom:10}}>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+              <span style={{fontSize:12,fontWeight:700,color:"#666"}}>Modul {i+1}</span>
+              {courseMods.length>1&&<span style={{fontSize:11,color:"#ccc",cursor:"pointer"}} onClick={()=>setCourseMods(p=>p.filter((_,j)=>j!==i))}>Hapus</span>}
+            </div>
+            <input className="inp" placeholder="Judul Modul *" value={m.title} onChange={e=>{const n=[...courseMods];n[i]={...n[i],title:e.target.value};setCourseMods(n)}}/>
+            <div style={{display:"flex",gap:8}}>
+              <select className="sel" style={{flex:"0 0 120px"}} value={m.type} onChange={e=>{const n=[...courseMods];n[i]={...n[i],type:e.target.value};setCourseMods(n)}}>
+                <option value="article">📄 Artikel</option><option value="video">🎬 Video</option>
+              </select>
+              <input className="inp" placeholder="Durasi" style={{flex:1}} value={m.duration} onChange={e=>{const n=[...courseMods];n[i]={...n[i],duration:e.target.value};setCourseMods(n)}}/>
+            </div>
+            <textarea className="inp" placeholder="Isi materi..." style={{minHeight:50,resize:"vertical"}} value={m.content} onChange={e=>{const n=[...courseMods];n[i]={...n[i],content:e.target.value};setCourseMods(n)}}/>
+          </div>)}
+          <button className="btn bo bs" style={{width:"100%",marginBottom:10}} onClick={()=>setCourseMods(p=>[...p,{title:"",content:"",type:"article",duration:""}])}>+ Tambah Modul</button>
+          <div style={{display:"flex",gap:8}}>
+            <button className="btn bo bs" style={{flex:1}} onClick={()=>setCourseStep(1)}>← Kembali</button>
+            <button className="btn bp bs" style={{flex:1}} onClick={()=>setCourseStep(3)}>Lanjut: Quiz →</button>
+          </div>
+        </>}
+        {courseStep===3&&<>
+          <div style={{fontSize:12,fontWeight:700,color:C.crimson,marginBottom:10}}>Langkah 3/3 — Quiz ({courseQuizzes.length} soal)</div>
+          {courseQuizzes.map((q,i)=><div key={i} style={{background:"#faf8f5",borderRadius:12,padding:14,marginBottom:10}}>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+              <span style={{fontSize:12,fontWeight:700,color:"#666"}}>Soal {i+1}</span>
+              {courseQuizzes.length>1&&<span style={{fontSize:11,color:"#ccc",cursor:"pointer"}} onClick={()=>setCourseQuizzes(p=>p.filter((_,j)=>j!==i))}>Hapus</span>}
+            </div>
+            <input className="inp" placeholder="Pertanyaan *" value={q.question} onChange={e=>{const n=[...courseQuizzes];n[i]={...n[i],question:e.target.value};setCourseQuizzes(n)}}/>
+            {q.options.map((o,oi)=><div key={oi} style={{display:"flex",gap:6,alignItems:"center",marginBottom:4}}>
+              <input type="radio" name={`q${i}`} checked={q.correct_answer===oi} onChange={()=>{const n=[...courseQuizzes];n[i]={...n[i],correct_answer:oi};setCourseQuizzes(n)}} style={{cursor:"pointer"}}/>
+              <input className="inp" placeholder={`Opsi ${String.fromCharCode(65+oi)}`} style={{marginBottom:0,flex:1}} value={o} onChange={e=>{const n=[...courseQuizzes];n[i].options[oi]=e.target.value;setCourseQuizzes(n)}}/>
+            </div>)}
+            <div style={{fontSize:10,color:"#aaa",marginTop:4}}>● Pilih radio button di samping jawaban yang benar</div>
+          </div>)}
+          <button className="btn bo bs" style={{width:"100%",marginBottom:10}} onClick={()=>setCourseQuizzes(p=>[...p,{question:"",options:["","","",""],correct_answer:0}])}>+ Tambah Soal</button>
+          <div style={{display:"flex",gap:8}}>
+            <button className="btn bo bs" style={{flex:1}} onClick={()=>setCourseStep(2)}>← Kembali</button>
+            <button className="btn bp bs" style={{flex:1}} onClick={()=>handleAddCourse({...courseForm,modules:courseMods.filter(m=>m.title),quizzes:courseQuizzes.filter(q=>q.question)})}>Publish Kursus 🚀</button>
+          </div>
+        </>}
       </div></div>}
 
       {/* ═══ FORM: Buat Lowongan Kerja ═══ */}
@@ -904,20 +903,17 @@ export default function App() {
         <button onClick={()=>setShowJobForm(false)} style={{ position:"absolute",top:12,right:16,background:"none",border:"none",fontSize:17,cursor:"pointer",color:"#ccc" }}>✕</button>
         <h3 className="hmd" style={{ marginBottom:4 }}>💼 Buat Lowongan Baru</h3>
         <p style={{ fontSize:12,color:"#aaa",marginBottom:14 }}>Isi detail posisi yang Anda butuhkan</p>
-        {(()=>{const [jf,setJf]=useState({title:"",description:"",requirements:"",city:profile?.city||"",type:"Full-time",salary:""});
-        return<>
-          <input className="inp" placeholder="Judul Posisi * (mis: Staff Marketing)" value={jf.title} onChange={e=>setJf(p=>({...p,title:e.target.value}))}/>
-          <textarea className="inp" placeholder="Deskripsi pekerjaan..." style={{minHeight:60,resize:"vertical"}} value={jf.description} onChange={e=>setJf(p=>({...p,description:e.target.value}))}/>
-          <textarea className="inp" placeholder="Persyaratan (satu per baris)&#10;Contoh:&#10;Lulusan S1&#10;Pengalaman min 1 tahun&#10;Menguasai Microsoft Office" style={{minHeight:80,resize:"vertical"}} value={jf.requirements} onChange={e=>setJf(p=>({...p,requirements:e.target.value}))}/>
-          <div style={{display:"flex",gap:8}}>
-            <input className="inp" placeholder="Kota *" style={{flex:1}} value={jf.city} onChange={e=>setJf(p=>({...p,city:e.target.value}))}/>
-            <select className="sel" style={{flex:1}} value={jf.type} onChange={e=>setJf(p=>({...p,type:e.target.value}))}>
-              <option>Full-time</option><option>Part-time</option><option>Freelance</option><option>Internship</option>
-            </select>
-          </div>
-          <input className="inp" placeholder="Gaji (mis: Rp 5-7 Jt/bln)" value={jf.salary} onChange={e=>setJf(p=>({...p,salary:e.target.value}))}/>
-          <button className="btn bp" style={{width:"100%",opacity:jf.title&&jf.city?1:.5}} disabled={!jf.title||!jf.city} onClick={()=>handleAddJob(jf)}>Publish Lowongan →</button>
-        </>})()}
+        <input className="inp" placeholder="Judul Posisi *" value={jobForm.title} onChange={e=>setJobForm(p=>({...p,title:e.target.value}))}/>
+        <textarea className="inp" placeholder="Deskripsi pekerjaan..." style={{minHeight:60,resize:"vertical"}} value={jobForm.description} onChange={e=>setJobForm(p=>({...p,description:e.target.value}))}/>
+        <textarea className="inp" placeholder="Persyaratan (satu per baris)" style={{minHeight:80,resize:"vertical"}} value={jobForm.requirements} onChange={e=>setJobForm(p=>({...p,requirements:e.target.value}))}/>
+        <div style={{display:"flex",gap:8}}>
+          <input className="inp" placeholder="Kota *" style={{flex:1}} value={jobForm.city} onChange={e=>setJobForm(p=>({...p,city:e.target.value}))}/>
+          <select className="sel" style={{flex:1}} value={jobForm.type} onChange={e=>setJobForm(p=>({...p,type:e.target.value}))}>
+            <option>Full-time</option><option>Part-time</option><option>Freelance</option><option>Internship</option>
+          </select>
+        </div>
+        <input className="inp" placeholder="Gaji (mis: Rp 5-7 Jt/bln)" value={jobForm.salary} onChange={e=>setJobForm(p=>({...p,salary:e.target.value}))}/>
+        <button className="btn bp" style={{width:"100%",opacity:jobForm.title&&jobForm.city?1:.5}} disabled={!jobForm.title||!jobForm.city} onClick={()=>handleAddJob(jobForm)}>Publish Lowongan →</button>
       </div></div>}
 
       {/* ═══ FORM: Daftarkan Perusahaan (Investasi) ═══ */}
@@ -925,38 +921,35 @@ export default function App() {
         <button onClick={()=>setShowCompanyForm(false)} style={{ position:"absolute",top:12,right:16,background:"none",border:"none",fontSize:17,cursor:"pointer",color:"#ccc" }}>✕</button>
         <h3 className="hmd" style={{ marginBottom:4 }}>📈 Daftarkan Perusahaan</h3>
         <p style={{ fontSize:12,color:"#aaa",marginBottom:14 }}>Daftarkan usaha Anda untuk menerima investasi</p>
-        {(()=>{const [cf,setCf]=useState({name:"",sector:"Makanan & Minuman",city:profile?.city||"",description:"",target_fund:"",return_rate:"",period:"12 bulan",akad:"Musyarakah",revenue:"",profit:"",growth:""});
-        return<>
-          <input className="inp" placeholder="Nama Perusahaan/UB *" value={cf.name} onChange={e=>setCf(p=>({...p,name:e.target.value}))}/>
-          <div style={{display:"flex",gap:8}}>
-            <select className="sel" style={{flex:1}} value={cf.sector} onChange={e=>setCf(p=>({...p,sector:e.target.value}))}>
-              <option>Makanan & Minuman</option><option>Konveksi & Tekstil</option><option>Teknologi & IT</option>
-              <option>Pertanian & Peternakan</option><option>Furniture & Interior</option><option>Keuangan Syariah</option>
-              <option>Konstruksi</option><option>Kesehatan</option><option>Pendidikan</option><option>Lainnya</option>
-            </select>
-            <input className="inp" placeholder="Kota *" style={{flex:1}} value={cf.city} onChange={e=>setCf(p=>({...p,city:e.target.value}))}/>
-          </div>
-          <textarea className="inp" placeholder="Deskripsi usaha & rencana penggunaan dana..." style={{minHeight:60,resize:"vertical"}} value={cf.description} onChange={e=>setCf(p=>({...p,description:e.target.value}))}/>
-          <div style={{display:"flex",gap:8}}>
-            <input className="inp" placeholder="Target Dana (Jt) *" type="number" style={{flex:1}} value={cf.target_fund} onChange={e=>setCf(p=>({...p,target_fund:e.target.value}))}/>
-            <input className="inp" placeholder="Return Rate (mis: 15-18%)" style={{flex:1}} value={cf.return_rate} onChange={e=>setCf(p=>({...p,return_rate:e.target.value}))}/>
-          </div>
-          <div style={{display:"flex",gap:8}}>
-            <select className="sel" style={{flex:1}} value={cf.akad} onChange={e=>setCf(p=>({...p,akad:e.target.value}))}>
-              <option>Musyarakah</option><option>Mudharabah</option><option>Murabahah</option>
-            </select>
-            <select className="sel" style={{flex:1}} value={cf.period} onChange={e=>setCf(p=>({...p,period:e.target.value}))}>
-              <option>6 bulan</option><option>12 bulan</option><option>18 bulan</option><option>24 bulan</option><option>36 bulan</option>
-            </select>
-          </div>
-          <div style={{fontSize:12,fontWeight:700,color:"#666",marginBottom:8,marginTop:4}}>Data Keuangan (opsional)</div>
-          <div style={{display:"flex",gap:8}}>
-            <input className="inp" placeholder="Revenue/thn" style={{flex:1}} value={cf.revenue} onChange={e=>setCf(p=>({...p,revenue:e.target.value}))}/>
-            <input className="inp" placeholder="Profit/thn" style={{flex:1}} value={cf.profit} onChange={e=>setCf(p=>({...p,profit:e.target.value}))}/>
-            <input className="inp" placeholder="Growth %" style={{flex:"0 0 80px"}} value={cf.growth} onChange={e=>setCf(p=>({...p,growth:e.target.value}))}/>
-          </div>
-          <button className="btn bp" style={{width:"100%",opacity:cf.name&&cf.city&&cf.target_fund?1:.5}} disabled={!cf.name||!cf.city||!cf.target_fund} onClick={()=>handleAddCompany(cf)}>Daftarkan Perusahaan →</button>
-        </>})()}
+        <input className="inp" placeholder="Nama Perusahaan/UB *" value={companyForm.name} onChange={e=>setCompanyForm(p=>({...p,name:e.target.value}))}/>
+        <div style={{display:"flex",gap:8}}>
+          <select className="sel" style={{flex:1}} value={companyForm.sector} onChange={e=>setCompanyForm(p=>({...p,sector:e.target.value}))}>
+            <option>Makanan & Minuman</option><option>Konveksi & Tekstil</option><option>Teknologi & IT</option>
+            <option>Pertanian & Peternakan</option><option>Furniture & Interior</option><option>Keuangan Syariah</option>
+            <option>Konstruksi</option><option>Kesehatan</option><option>Pendidikan</option><option>Lainnya</option>
+          </select>
+          <input className="inp" placeholder="Kota *" style={{flex:1}} value={companyForm.city} onChange={e=>setCompanyForm(p=>({...p,city:e.target.value}))}/>
+        </div>
+        <textarea className="inp" placeholder="Deskripsi usaha & rencana penggunaan dana..." style={{minHeight:60,resize:"vertical"}} value={companyForm.description} onChange={e=>setCompanyForm(p=>({...p,description:e.target.value}))}/>
+        <div style={{display:"flex",gap:8}}>
+          <input className="inp" placeholder="Target Dana (Jt) *" type="number" style={{flex:1}} value={companyForm.target_fund} onChange={e=>setCompanyForm(p=>({...p,target_fund:e.target.value}))}/>
+          <input className="inp" placeholder="Return Rate (mis: 15-18%)" style={{flex:1}} value={companyForm.return_rate} onChange={e=>setCompanyForm(p=>({...p,return_rate:e.target.value}))}/>
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          <select className="sel" style={{flex:1}} value={companyForm.akad} onChange={e=>setCompanyForm(p=>({...p,akad:e.target.value}))}>
+            <option>Musyarakah</option><option>Mudharabah</option><option>Murabahah</option>
+          </select>
+          <select className="sel" style={{flex:1}} value={companyForm.period} onChange={e=>setCompanyForm(p=>({...p,period:e.target.value}))}>
+            <option>6 bulan</option><option>12 bulan</option><option>18 bulan</option><option>24 bulan</option><option>36 bulan</option>
+          </select>
+        </div>
+        <div style={{fontSize:12,fontWeight:700,color:"#666",marginBottom:8,marginTop:4}}>Data Keuangan (opsional)</div>
+        <div style={{display:"flex",gap:8}}>
+          <input className="inp" placeholder="Revenue/thn" style={{flex:1}} value={companyForm.revenue} onChange={e=>setCompanyForm(p=>({...p,revenue:e.target.value}))}/>
+          <input className="inp" placeholder="Profit/thn" style={{flex:1}} value={companyForm.profit} onChange={e=>setCompanyForm(p=>({...p,profit:e.target.value}))}/>
+          <input className="inp" placeholder="Growth %" style={{flex:"0 0 80px"}} value={companyForm.growth} onChange={e=>setCompanyForm(p=>({...p,growth:e.target.value}))}/>
+        </div>
+        <button className="btn bp" style={{width:"100%",opacity:companyForm.name&&companyForm.city&&companyForm.target_fund?1:.5}} disabled={!companyForm.name||!companyForm.city||!companyForm.target_fund} onClick={()=>handleAddCompany(companyForm)}>Daftarkan Perusahaan →</button>
       </div></div>}
 
       {/* INVESTASI — Connected */}
@@ -1035,7 +1028,6 @@ export default function App() {
       </div>}
       {/* Job Detail */}
       {page==="loker"&&sub&&(()=>{const j=jobs.find(x=>x.id===sub);if(!j)return null;
-        const [cl,setCl]=useState("");
         return<div style={{ maxWidth:720,margin:"0 auto",padding:"28px 24px 64px" }}>
         <button className="back" onClick={()=>nav("loker")}>← Lowongan</button>
         <div className="card" style={{ padding:24,marginBottom:18 }}>
@@ -1048,8 +1040,8 @@ export default function App() {
         <div className="card" style={{ padding:24 }}>
           <h3 className="hmd" style={{ marginBottom:14 }}>Lamar Posisi Ini</h3>
           {!user&&<div className="err">Login dulu untuk melamar. <span style={{cursor:"pointer",textDecoration:"underline"}} onClick={()=>setLoginM(true)}>Login</span></div>}
-          <textarea className="inp" placeholder="Ceritakan pengalaman dan motivasi Anda..." style={{ minHeight:80 }} value={cl} onChange={e=>setCl(e.target.value)}/>
-          <button className="btn bp" style={{ width:"100%",opacity:!user?.5:1 }} disabled={!user} onClick={()=>handleApplyJob(j.id,cl)}>Kirim Lamaran →</button>
+          <textarea className="inp" placeholder="Ceritakan pengalaman dan motivasi Anda..." style={{ minHeight:80 }} value={coverLetter} onChange={e=>setCoverLetter(e.target.value)}/>
+          <button className="btn bp" style={{ width:"100%",opacity:!user?.5:1 }} disabled={!user} onClick={()=>handleApplyJob(j.id,coverLetter)}>Kirim Lamaran →</button>
         </div>
       </div>})()}
 
@@ -1090,9 +1082,8 @@ export default function App() {
             {!bmtSubmitted?<button className="btn bp" style={{ width:"100%",marginTop:8 }} onClick={()=>{if(!user){setLoginM(true);return}setBmtSubmitted(true)}}>Ajukan Pembiayaan →</button>
             :<div className="card" style={{ padding:20,marginTop:8 }}>
               <h3 className="hmd" style={{ marginBottom:12 }}>Form Pengajuan</h3>
-              {(()=>{const [purpose,setPurpose]=useState("");
-              return<><textarea className="inp" placeholder="Tujuan pembiayaan..." style={{ minHeight:60 }} value={purpose} onChange={e=>setPurpose(e.target.value)}/>
-              <button className="btn bp" style={{ width:"100%" }} onClick={()=>handleBmtApply(purpose)}>Kirim ke BMT →</button></>})()}
+              <textarea className="inp" placeholder="Tujuan pembiayaan..." style={{ minHeight:60 }} value={bmtPurpose} onChange={e=>setBmtPurpose(e.target.value)}/>
+              <button className="btn bp" style={{ width:"100%" }} onClick={()=>handleBmtApply(bmtPurpose)}>Kirim ke BMT →</button>
             </div>}
           </div>
         </div>}
