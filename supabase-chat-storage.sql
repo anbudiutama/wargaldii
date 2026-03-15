@@ -37,3 +37,25 @@ CREATE POLICY "Users delete own" ON storage.objects FOR DELETE USING (bucket_id 
 
 -- Enable realtime for chat
 ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_messages;
+
+-- ═══ BMT INSTITUTIONS ═══
+CREATE TABLE IF NOT EXISTS public.bmt_institutions (
+  id BIGSERIAL PRIMARY KEY,
+  owner_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  name TEXT NOT NULL,
+  city TEXT,
+  address TEXT,
+  phone TEXT,
+  description TEXT,
+  margin_produktif NUMERIC DEFAULT 0.012,
+  margin_konsumtif NUMERIC DEFAULT 0.015,
+  max_amount NUMERIC DEFAULT 500,
+  status TEXT DEFAULT 'active',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.bmt_institutions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public view active BMT" ON public.bmt_institutions FOR SELECT USING (status = 'active');
+CREATE POLICY "Owner manage BMT" ON public.bmt_institutions FOR ALL USING (auth.uid() = owner_id);
+
+-- Add bmt_id to bmt_applications if not exists
+ALTER TABLE public.bmt_applications ADD COLUMN IF NOT EXISTS bmt_id BIGINT REFERENCES public.bmt_institutions(id);
