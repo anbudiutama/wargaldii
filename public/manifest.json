@@ -1,0 +1,24 @@
+{
+  "name": "WargaLDII - Platform Ekonomi Jamaah LDII",
+  "short_name": "WargaLDII",
+  "description": "Marketplace, E-Learning, Lowongan Kerja, Investasi Syariah, BMT, dan Hibah Barkas untuk jamaah LDII",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAF8F3",
+  "theme_color": "#1B6B3A",
+  "orientation": "portrait-primary",
+  "categories": ["business", "education", "finance"],
+  "lang": "id",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
