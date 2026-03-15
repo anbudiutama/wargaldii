@@ -25,6 +25,10 @@ export default function App(){
   const [lokerType,setLokerType]=useState("Semua"),[lokerSearch,setLokerSearch]=useState(""),[lokerCity,setLokerCity]=useState("Semua");
   const [bmtAmt,setBmtAmt]=useState(50),[bmtTenor,setBmtTenor]=useState(12),[bmtType,setBmtType]=useState("produktif"),[bmtSubmitted,setBmtSubmitted]=useState(false),[bmtTab,setBmtTab]=useState("kalkulator"),[bmtHistory,setBmtHistory]=useState([]);
   const [profileTab,setProfileTab]=useState("overview"),[dirType,setDirType]=useState("Semua"),[adminTab,setAdminTab]=useState("overview"),[adminStats,setAdminStats]=useState(null),[adminUsers,setAdminUsers]=useState([]);
+  // Kelola Konten Saya
+  const [kelolaTab,setKelolaTab]=useState("produk");
+  const [myProducts,setMyProducts]=useState([]),[myJobs2,setMyJobs2]=useState([]),[myCourses2,setMyCourses2]=useState([]),[myHibah2,setMyHibah2]=useState([]),[myCompanies2,setMyCompanies2]=useState([]);
+  const [jobApplicants,setJobApplicants]=useState([]),[hibahRequests2,setHibahRequests2]=useState([]),[productOrders2,setProductOrders2]=useState([]),[companyInvestors,setCompanyInvestors]=useState([]),[courseStudents,setCourseStudents]=useState([]);
   // Forms
   const [regForm,setRegForm]=useState({full_name:"",email:"",phone:"",role:"pembelajar",city:"",cabang_ldii:"",password:""});
   const [loginForm,setLoginForm]=useState({email:"",password:""});
@@ -81,10 +85,36 @@ export default function App(){
   async function handleUpdateProfile(){const{error}=await getSupabase()?.from('profiles').update(profileForm).eq('id',user.id);if(error){alert("Error: "+error.message);return;}alert("✅ Profil diupdate!");setProfileTab("overview");fp(user.id);}
   async function handleAdminBmt(id,act){await getSupabase()?.from('bmt_applications').update({status:act==='approve'?'active':'rejected'}).eq('id',id);alert(act==='approve'?"Disetujui!":"Ditolak!");fetchAS();}
 
+  // Kelola: fetch my content + responses
+  async function fetchKelola(){if(!user)return;
+    const[rP,rJ,rC,rH,rCo]=await Promise.all([
+      getSupabase()?.from('products').select('*').eq('seller_id',user.id).order('created_at',{ascending:false}),
+      getSupabase()?.from('jobs').select('*').eq('company_id',user.id).order('created_at',{ascending:false}),
+      getSupabase()?.from('courses').select('*,course_modules(id),course_quizzes(id)').eq('instructor_id',user.id).order('created_at',{ascending:false}),
+      getSupabase()?.from('hibah_items').select('*').eq('donor_id',user.id).order('created_at',{ascending:false}),
+      getSupabase()?.from('investment_companies').select('*').eq('owner_id',user.id).order('created_at',{ascending:false}),
+    ]);
+    setMyProducts(rP?.data||[]);setMyJobs2(rJ?.data||[]);setMyCourses2(rC?.data||[]);setMyHibah2(rH?.data||[]);setMyCompanies2(rCo?.data||[]);
+    // Fetch responses
+    const pIds=(rP?.data||[]).map(p=>p.id);
+    const jIds=(rJ?.data||[]).map(j=>j.id);
+    const hIds=(rH?.data||[]).map(h=>h.id);
+    const cIds=(rC?.data||[]).map(c=>c.id);
+    const coIds=(rCo?.data||[]).map(c=>c.id);
+    if(pIds.length){const r=await getSupabase()?.from('order_items').select('*,order:orders(*,buyer:profiles!buyer_id(full_name,phone)),product:products(name)').in('product_id',pIds).order('id',{ascending:false});setProductOrders2(r?.data||[]);}
+    if(jIds.length){const r=await getSupabase()?.from('job_applications').select('*,applicant:profiles!applicant_id(full_name,email,phone,city)').in('job_id',jIds).order('created_at',{ascending:false});setJobApplicants(r?.data||[]);}
+    if(hIds.length){const r=await getSupabase()?.from('hibah_requests').select('*,requester:profiles!requester_id(full_name,phone,city)').in('item_id',hIds).order('created_at',{ascending:false});setHibahRequests2(r?.data||[]);}
+    if(coIds.length){const r=await getSupabase()?.from('investments').select('*,investor:profiles!investor_id(full_name,phone,city)').in('company_id',coIds).order('created_at',{ascending:false});setCompanyInvestors(r?.data||[]);}
+    if(cIds.length){const r=await getSupabase()?.from('course_progress').select('*,user:profiles!user_id(full_name)').in('course_id',cIds).eq('completed',true);setCourseStudents(r?.data||[]);}
+  }
+  // Delete handlers
+  async function handleDelete(table,id,label){if(!confirm(`Yakin hapus ${label}?`))return;await getSupabase()?.from(table).delete().eq('id',id);alert("✅ Dihapus!");fetchKelola();fetchP();fetchC();fetchH();fetchI();fetchJ();}
+
   // Helpers
   useEffect(()=>{setTimeout(()=>setHeroReady(true),150);},[]);
   useEffect(()=>{if(page==="home"){const t=setInterval(()=>setFlowStep(p=>(p+1)%7),2500);return()=>clearInterval(t);};},[page]);
   useEffect(()=>{if(page==="admin"&&profile?.role==="admin")fetchAS();},[page]);
+  useEffect(()=>{if(page==="kelola"&&user)fetchKelola();},[page]);
   const nav=(p,s=null)=>{setPage(p);setSub(s);setNotif(false);setCartOpen(false);setMobileMenu(false);setQuizStarted(false);setQuizDone(false);setQuizAnswers({});setActiveLesson(0);setAuthError("");setAuthSuccess("");window.scrollTo({top:0,behavior:"smooth"});};
   const addCart=p=>{setCart(prev=>{const ex=prev.find(x=>x.id===p.id);if(ex)return prev.map(x=>x.id===p.id?{...x,qty:x.qty+1}:x);return[...prev,{...p,qty:1}];});};
   const rmCart=id=>setCart(prev=>prev.filter(x=>x.id!==id));
@@ -105,6 +135,7 @@ export default function App(){
 <div style={{display:"flex",alignItems:"center",gap:16}}>
 {MODULES.map(m=><span key={m.id} className="nav-link hide-m" onClick={()=>nav(m.id)}>{m.icon} {m.title}</span>)}
 <span className="nav-link hide-m" onClick={()=>nav("dashboard")}>📊</span>
+{user&&<span className="nav-link hide-m" onClick={()=>nav("kelola")} style={{color:C.gold}}>📋</span>}
 {profile?.role==="admin"&&<span className="nav-link hide-m" onClick={()=>nav("admin")} style={{color:C.crimson}}>⚙️</span>}
 <div style={{position:"relative",cursor:"pointer"}} onClick={()=>{setCartOpen(!cartOpen);setNotif(false)}}><span style={{fontSize:17}}>🛒</span>{cartCount>0&&<span style={{position:"absolute",top:-5,right:-6,minWidth:16,height:16,background:C.gold,borderRadius:50,fontSize:9,color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,border:"2px solid white",padding:"0 3px"}}>{cartCount}</span>}</div>
 <div style={{position:"relative",cursor:"pointer"}} onClick={()=>{setNotif(!notif);setCartOpen(false)}}><span style={{fontSize:17}}>🔔</span>{notifications.filter(n=>!n.read).length>0&&<span style={{position:"absolute",top:-4,right:-4,width:14,height:14,background:C.crimson,borderRadius:50,fontSize:8,color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,border:"2px solid white"}}>{notifications.filter(n=>!n.read).length}</span>}</div>
@@ -113,7 +144,8 @@ export default function App(){
 </div></div>
 {cartOpen&&<div style={{position:"absolute",right:20,top:56,width:380,maxWidth:"92vw",background:"white",borderRadius:16,boxShadow:"0 16px 48px rgba(0,0,0,.12)",zIndex:200,animation:"fadeUp .2s"}}><div style={{padding:"14px 18px",borderBottom:"1px solid #f5f3ef",fontWeight:800,fontSize:14}}>Keranjang ({cartCount})</div><div style={{maxHeight:300,overflowY:"auto"}}>{cart.length===0?<div style={{padding:30,textAlign:"center",color:"#ccc"}}>Kosong</div>:cart.map(x=><div key={x.id} style={{padding:"12px 18px",borderBottom:"1px solid #faf8f5",display:"flex",gap:10,alignItems:"center"}}><span style={{fontSize:28}}>{x.img||"📦"}</span><div style={{flex:1}}><div style={{fontSize:12.5,fontWeight:700}}>{x.name}</div><div style={{fontSize:12,color:C.crimson,fontWeight:700}}>{fmt(x.price)}</div><div style={{display:"flex",alignItems:"center",gap:8,marginTop:4}}><button className="btn" style={{width:24,height:24,borderRadius:6,background:"#f5f3ef",fontSize:14,padding:0}} onClick={()=>updQty(x.id,-1)}>-</button><span style={{fontSize:13,fontWeight:700}}>{x.qty}</span><button className="btn" style={{width:24,height:24,borderRadius:6,background:"#f5f3ef",fontSize:14,padding:0}} onClick={()=>updQty(x.id,1)}>+</button><button style={{marginLeft:"auto",background:"none",border:"none",color:"#ccc",cursor:"pointer"}} onClick={()=>rmCart(x.id)}>✕</button></div></div></div>)}</div>{cart.length>0&&<div style={{padding:"14px 18px",borderTop:"1px solid #f5f3ef"}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}><span style={{fontWeight:700}}>Total</span><span style={{fontWeight:800,color:C.crimson}}>{fmt(cartTotal)}</span></div><button className="btn bp" style={{width:"100%"}} onClick={()=>{nav("checkout");setCartOpen(false)}}>Checkout →</button></div>}</div>}
 {notif&&<div style={{position:"absolute",right:60,top:56,width:340,maxWidth:"90vw",background:"white",borderRadius:16,boxShadow:"0 16px 48px rgba(0,0,0,.12)",zIndex:200,animation:"fadeUp .2s"}}><div style={{padding:"12px 16px",borderBottom:"1px solid #f5f3ef",fontWeight:800,fontSize:13}}>Notifikasi</div><div style={{maxHeight:300,overflowY:"auto"}}>{notifications.length===0?<div style={{padding:24,textAlign:"center",color:"#ccc",fontSize:13}}>Belum ada</div>:notifications.map((n,i)=><div key={n.id||i} style={{padding:"10px 16px",borderBottom:"1px solid #faf8f5",display:"flex",gap:8}}><span style={{fontSize:18}}>🔔</span><div><div style={{fontSize:12.5,fontWeight:700}}>{n.title}</div><div style={{fontSize:11,color:"#aaa"}}>{n.message}</div></div></div>)}</div></div>}
-{mobileMenu&&<><div className="mob-overlay" onClick={()=>setMobileMenu(false)}/><div className="mob-menu"><div style={{display:"flex",justifyContent:"space-between",marginBottom:24}}><div style={{fontFamily:"'Outfit'",fontWeight:900,fontSize:16}}>Menu</div><button style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"#999"}} onClick={()=>setMobileMenu(false)}>✕</button></div>{user&&<div style={{padding:"12px 14px",background:`${C.crimson}06`,borderRadius:12,marginBottom:16,fontSize:13,cursor:"pointer"}} onClick={()=>{setMobileMenu(false);nav("profile")}}>👤 <b>{profile?.full_name}</b><br/><span style={{color:"#999"}}>{profile?.role}</span></div>}{MODULES.map(m=><div key={m.id} style={{padding:"12px 0",borderBottom:"1px solid #f5f3ef",cursor:"pointer",fontSize:14,fontWeight:600}} onClick={()=>nav(m.id)}>{m.icon} {m.title}</div>)}<div style={{padding:"12px 0",cursor:"pointer",fontSize:14,fontWeight:600}} onClick={()=>nav("dashboard")}>📊 Dashboard</div>{profile?.role==="admin"&&<div style={{padding:"12px 0",cursor:"pointer",fontSize:14,fontWeight:600,color:C.crimson}} onClick={()=>nav("admin")}>⚙️ Admin</div>}<div style={{marginTop:20,display:"flex",gap:8}}>{user?<button className="btn bp bs" style={{flex:1}} onClick={()=>{setMobileMenu(false);handleLogout()}}>Logout</button>:<><button className="btn bo bs" style={{flex:1}} onClick={()=>{setMobileMenu(false);setLoginM(true)}}>Masuk</button><button className="btn bp bs" style={{flex:1}} onClick={()=>{setMobileMenu(false);setRegM(true)}}>Daftar</button></>}</div></div></>}
+{mobileMenu&&<><div className="mob-overlay" onClick={()=>setMobileMenu(false)}/><div className="mob-menu"><div style={{display:"flex",justifyContent:"space-between",marginBottom:24}}><div style={{fontFamily:"'Outfit'",fontWeight:900,fontSize:16}}>Menu</div><button style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"#999"}} onClick={()=>setMobileMenu(false)}>✕</button></div>{user&&<div style={{padding:"12px 14px",background:`${C.crimson}06`,borderRadius:12,marginBottom:16,fontSize:13,cursor:"pointer"}} onClick={()=>{setMobileMenu(false);nav("profile")}}>👤 <b>{profile?.full_name}</b><br/><span style={{color:"#999"}}>{profile?.role}</span></div>}{MODULES.map(m=><div key={m.id} style={{padding:"12px 0",borderBottom:"1px solid #f5f3ef",cursor:"pointer",fontSize:14,fontWeight:600}} onClick={()=>nav(m.id)}>{m.icon} {m.title}</div>)}<div style={{padding:"12px 0",cursor:"pointer",fontSize:14,fontWeight:600}} onClick={()=>nav("dashboard")}>📊 Dashboard</div>
+{user&&<div style={{padding:"12px 0",cursor:"pointer",fontSize:14,fontWeight:600,color:C.gold}} onClick={()=>nav("kelola")}>📋 Kelola Konten</div>}{profile?.role==="admin"&&<div style={{padding:"12px 0",cursor:"pointer",fontSize:14,fontWeight:600,color:C.crimson}} onClick={()=>nav("admin")}>⚙️ Admin</div>}<div style={{marginTop:20,display:"flex",gap:8}}>{user?<button className="btn bp bs" style={{flex:1}} onClick={()=>{setMobileMenu(false);handleLogout()}}>Logout</button>:<><button className="btn bo bs" style={{flex:1}} onClick={()=>{setMobileMenu(false);setLoginM(true)}}>Masuk</button><button className="btn bp bs" style={{flex:1}} onClick={()=>{setMobileMenu(false);setRegM(true)}}>Daftar</button></>}</div></div></>}
 </nav>
 
 {/* Auth Modals */}
@@ -178,6 +210,79 @@ export default function App(){
 
 {/* DASHBOARD */}
 {page==="dashboard"&&<div style={{maxWidth:1280,margin:"0 auto",padding:"28px 24px 64px"}}><button className="back" onClick={()=>nav("home")}>← Beranda</button><h1 className="hlg" style={{marginBottom:22}}>📊 Dashboard</h1><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:14,marginBottom:20}}>{[{l:"Produk",v:products.length,cl:C.gold},{l:"Kursus",v:courses.length,cl:C.crimson},{l:"Hibah",v:hibahItems.length,cl:C.copper},{l:"Investasi",v:investCompanies.length,cl:C.royal},{l:"Lowongan",v:jobs.length,cl:C.emerald},{l:"BMT",v:bmtHistory.length,cl:C.plum}].map((k,i)=><div key={i} className="card" style={{padding:"18px 20px"}}><div style={{fontFamily:"'DM Serif Display'",fontSize:28,color:C.dark}}>{k.v}</div><div style={{fontSize:11.5,color:"#bbb",fontWeight:600}}>{k.l}</div></div>)}</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}} className="m-grid1"><div className="card" style={{padding:22}}><h3 className="hmd" style={{marginBottom:14}}>Pertumbuhan Warga</h3><ResponsiveContainer width="100%" height={200}><AreaChart data={MO}><defs><linearGradient id="gW" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={C.crimson} stopOpacity={.15}/><stop offset="95%" stopColor={C.crimson} stopOpacity={0}/></linearGradient></defs><XAxis dataKey="b" axisLine={false} tickLine={false} style={{fontSize:10}}/><YAxis axisLine={false} tickLine={false} style={{fontSize:10}}/><Tooltip/><Area type="monotone" dataKey="w" stroke={C.crimson} strokeWidth={2} fill="url(#gW)" name="Warga"/></AreaChart></ResponsiveContainer></div><div className="card" style={{padding:22}}><h3 className="hmd" style={{marginBottom:14}}>Distribusi Modul</h3><ResponsiveContainer width="100%" height={200}><PieChart><Pie data={MDIST} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value">{MDIST.map((d,i)=><Cell key={i} fill={d.color}/>)}</Pie><Tooltip/></PieChart></ResponsiveContainer></div></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}} className="m-grid1"><div className="card" style={{padding:22}}><h3 className="hmd" style={{marginBottom:14}}>Transaksi</h3><ResponsiveContainer width="100%" height={200}><BarChart data={MO}><XAxis dataKey="b" axisLine={false} tickLine={false} style={{fontSize:10}}/><YAxis axisLine={false} tickLine={false} style={{fontSize:10}}/><Tooltip/><Bar dataKey="t" fill={C.gold} radius={[4,4,0,0]} name="Transaksi"/></BarChart></ResponsiveContainer></div><div className="card" style={{padding:22}}><h3 className="hmd" style={{marginBottom:14}}>Indeks Ekosistem</h3><ResponsiveContainer width="100%" height={200}><RadarChart data={RADAR}><PolarGrid stroke="#eee"/><PolarAngleAxis dataKey="subject" style={{fontSize:10}}/><Radar dataKey="A" stroke={C.crimson} fill={C.crimson} fillOpacity={.15}/></RadarChart></ResponsiveContainer></div></div></div>}
+
+{/* KELOLA KONTEN SAYA */}
+{page==="kelola"&&<div style={{maxWidth:1280,margin:"0 auto",padding:"28px 24px 64px"}}><button className="back" onClick={()=>nav("home")}>← Beranda</button>
+<h1 className="hlg" style={{marginBottom:4}}>📋 Kelola Konten Saya</h1>
+<p style={{color:"#aaa",fontSize:13,marginBottom:16}}>Kelola data yang Anda upload dan lihat respon publik</p>
+{!user?<div className="err">Login dulu. <span style={{cursor:"pointer",textDecoration:"underline"}} onClick={()=>setLoginM(true)}>Login</span></div>:<>
+<div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:20}}>
+{[{k:"produk",l:"🛒 Produk",c:myProducts.length},{k:"loker",l:"💼 Lowongan",c:myJobs2.length},{k:"kursus",l:"📚 Kursus",c:myCourses2.length},{k:"hibah",l:"🎁 Hibah",c:myHibah2.length},{k:"investasi",l:"📈 Perusahaan",c:myCompanies2.length}].map(t=><button key={t.k} className={`tab ${kelolaTab===t.k?"tab-a":""}`} onClick={()=>setKelolaTab(t.k)}>{t.l} ({t.c})</button>)}
+</div>
+
+{/* PRODUK SAYA + Pesanan Masuk */}
+{kelolaTab==="produk"&&<div>
+<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}><h3 className="hmd">Produk Saya</h3><button className="btn bp bs" onClick={()=>setShowProductForm(true)}>➕ Upload</button></div>
+{myProducts.length===0?<div style={{textAlign:"center",padding:40,color:"#ccc"}}>Belum ada produk.</div>:myProducts.map(p=><div key={p.id} className="card" style={{padding:18,marginBottom:10}}>
+<div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}>
+<div><h4 style={{fontFamily:"'Outfit'",fontWeight:800,fontSize:15}}>{p.name}</h4><div style={{fontSize:12,color:"#aaa"}}>{p.category} · Stok: {p.stock} · Terjual: {p.sold||0} · {fmt(p.price)}</div></div>
+<div style={{display:"flex",gap:6}}><span className="tag" style={{background:p.status==="active"?"#E8F5E9":"#FFF3E0",color:p.status==="active"?"#2E7D32":"#E65100"}}>{p.status}</span><button className="btn" style={{background:"#FFEBEE",color:"#C62828",padding:"4px 10px",fontSize:11,borderRadius:8}} onClick={()=>handleDelete('products',p.id,p.name)}>🗑️</button></div>
+</div>
+{/* Pesanan untuk produk ini */}
+{(()=>{const orders=productOrders2.filter(o=>o.product_id===p.id);return orders.length>0&&<div style={{marginTop:12,borderTop:"1px solid #f0ece6",paddingTop:10}}><div style={{fontSize:12,fontWeight:700,color:C.gold,marginBottom:6}}>📦 {orders.length} Pesanan Masuk:</div>{orders.map((o,i)=><div key={i} style={{fontSize:12,color:"#666",padding:"6px 10px",background:"#faf8f5",borderRadius:8,marginBottom:4,display:"flex",justifyContent:"space-between"}}><span>👤 {o.order?.buyer?.full_name} — Qty: {o.quantity}</span><span style={{color:"#aaa"}}>📞 {o.order?.buyer?.phone||"-"}</span></div>)}</div>})()}
+</div>)}
+</div>}
+
+{/* LOWONGAN SAYA + Lamaran Masuk */}
+{kelolaTab==="loker"&&<div>
+<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}><h3 className="hmd">Lowongan Saya</h3><button className="btn bp bs" onClick={()=>setShowJobForm(true)}>➕ Buat</button></div>
+{myJobs2.length===0?<div style={{textAlign:"center",padding:40,color:"#ccc"}}>Belum ada lowongan.</div>:myJobs2.map(j=><div key={j.id} className="card" style={{padding:18,marginBottom:10}}>
+<div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}>
+<div><h4 style={{fontFamily:"'Outfit'",fontWeight:800,fontSize:15}}>{j.title}</h4><div style={{fontSize:12,color:"#aaa"}}>{j.type} · {j.city} · {j.salary}</div></div>
+<div style={{display:"flex",gap:6}}><span className="tag" style={{background:`${C.emerald}10`,color:C.emerald}}>{j.status}</span><button className="btn" style={{background:"#FFEBEE",color:"#C62828",padding:"4px 10px",fontSize:11,borderRadius:8}} onClick={()=>handleDelete('jobs',j.id,j.title)}>🗑️</button></div>
+</div>
+{(()=>{const apps=jobApplicants.filter(a=>a.job_id===j.id);return apps.length>0&&<div style={{marginTop:12,borderTop:"1px solid #f0ece6",paddingTop:10}}><div style={{fontSize:12,fontWeight:700,color:C.emerald,marginBottom:6}}>📨 {apps.length} Pelamar:</div>{apps.map((a,i)=><div key={i} style={{fontSize:12,padding:"8px 10px",background:"#faf8f5",borderRadius:8,marginBottom:4}}><div style={{display:"flex",justifyContent:"space-between"}}><span style={{fontWeight:700}}>👤 {a.applicant?.full_name}</span><span className="tag" style={{background:a.status==="pending"?"#FFF8E1":"#E8F5E9",color:a.status==="pending"?"#F9A825":"#2E7D32",fontSize:10}}>{a.status}</span></div><div style={{color:"#999",marginTop:2}}>📧 {a.applicant?.email} · 📞 {a.applicant?.phone||"-"} · 📍 {a.applicant?.city||"-"}</div>{a.cover_letter&&<div style={{color:"#777",marginTop:4,fontStyle:"italic"}}>"{a.cover_letter.slice(0,120)}..."</div>}</div>)}</div>})()}
+</div>)}
+</div>}
+
+{/* KURSUS SAYA + Siswa */}
+{kelolaTab==="kursus"&&<div>
+<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}><h3 className="hmd">Kursus Saya</h3><button className="btn bp bs" onClick={()=>setShowCourseForm(true)}>➕ Buat</button></div>
+{myCourses2.length===0?<div style={{textAlign:"center",padding:40,color:"#ccc"}}>Belum ada kursus.</div>:myCourses2.map(c=><div key={c.id} className="card" style={{padding:18,marginBottom:10}}>
+<div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}>
+<div><h4 style={{fontFamily:"'Outfit'",fontWeight:800,fontSize:15}}>{c.title}</h4><div style={{fontSize:12,color:"#aaa"}}>{c.level} · {c.course_modules?.length||0} modul · {c.course_quizzes?.length||0} quiz</div></div>
+<button className="btn" style={{background:"#FFEBEE",color:"#C62828",padding:"4px 10px",fontSize:11,borderRadius:8}} onClick={()=>handleDelete('courses',c.id,c.title)}>🗑️</button>
+</div>
+{(()=>{const sts=courseStudents.filter(s=>s.course_id===c.id);const uniqueUsers=[...new Set(sts.map(s=>s.user_id))];return uniqueUsers.length>0&&<div style={{marginTop:12,borderTop:"1px solid #f0ece6",paddingTop:10}}><div style={{fontSize:12,fontWeight:700,color:C.crimson,marginBottom:6}}>🎓 {uniqueUsers.length} Siswa Aktif:</div>{uniqueUsers.map((uid,i)=>{const st=sts.find(s=>s.user_id===uid);return<div key={i} style={{fontSize:12,color:"#666",padding:"4px 10px",background:"#faf8f5",borderRadius:8,marginBottom:4}}>👤 {st?.user?.full_name||"User"} — {sts.filter(s=>s.user_id===uid).length} modul selesai</div>})}</div>})()}
+</div>)}
+</div>}
+
+{/* HIBAH SAYA + Pengajuan Masuk */}
+{kelolaTab==="hibah"&&<div>
+<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}><h3 className="hmd">Hibah Saya</h3><button className="btn bp bs" onClick={()=>setHibahGive(true)}>➕ Beri</button></div>
+{myHibah2.length===0?<div style={{textAlign:"center",padding:40,color:"#ccc"}}>Belum ada hibah.</div>:myHibah2.map(h=><div key={h.id} className="card" style={{padding:18,marginBottom:10}}>
+<div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}>
+<div><h4 style={{fontFamily:"'Outfit'",fontWeight:800,fontSize:15}}>{h.name}</h4><div style={{fontSize:12,color:"#aaa"}}>{h.condition} · {h.city} · {h.category}</div></div>
+<div style={{display:"flex",gap:6}}><span className="tag" style={{background:h.status==="available"?"#E8F5E9":"#FFF3E0",color:h.status==="available"?"#2E7D32":"#E65100"}}>{h.status}</span><button className="btn" style={{background:"#FFEBEE",color:"#C62828",padding:"4px 10px",fontSize:11,borderRadius:8}} onClick={()=>handleDelete('hibah_items',h.id,h.name)}>🗑️</button></div>
+</div>
+{(()=>{const reqs=hibahRequests2.filter(r=>r.item_id===h.id);return reqs.length>0&&<div style={{marginTop:12,borderTop:"1px solid #f0ece6",paddingTop:10}}><div style={{fontSize:12,fontWeight:700,color:C.copper,marginBottom:6}}>🙋 {reqs.length} Pengajuan:</div>{reqs.map((r,i)=><div key={i} style={{fontSize:12,padding:"8px 10px",background:"#faf8f5",borderRadius:8,marginBottom:4}}><div style={{display:"flex",justifyContent:"space-between"}}><span style={{fontWeight:700}}>👤 {r.requester?.full_name}</span><span className="tag" style={{background:r.status==="pending"?"#FFF8E1":"#E8F5E9",color:r.status==="pending"?"#F9A825":"#2E7D32",fontSize:10}}>{r.status}</span></div><div style={{color:"#999",marginTop:2}}>📞 {r.requester?.phone||"-"} · 📍 {r.requester?.city||"-"}</div>{r.reason&&<div style={{color:"#777",marginTop:4,fontStyle:"italic"}}>"{r.reason}"</div>}{r.status==="pending"&&h.status==="available"&&<div style={{display:"flex",gap:6,marginTop:6}}><button className="btn bp bs" onClick={async()=>{await getSupabase()?.from('hibah_requests').update({status:'approved'}).eq('id',r.id);await getSupabase()?.from('hibah_items').update({status:'claimed',claimed_by:r.requester_id}).eq('id',h.id);alert("✅ Disetujui!");fetchKelola();}}>✅ Setujui</button><button className="btn bo bs" onClick={async()=>{await getSupabase()?.from('hibah_requests').update({status:'rejected'}).eq('id',r.id);alert("Ditolak.");fetchKelola();}}>❌ Tolak</button></div>}</div>)}</div>})()}
+</div>)}
+</div>}
+
+{/* PERUSAHAAN SAYA + Investor Masuk */}
+{kelolaTab==="investasi"&&<div>
+<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}><h3 className="hmd">Perusahaan Saya</h3><button className="btn bp bs" onClick={()=>setShowCompanyForm(true)}>➕ Daftar</button></div>
+{myCompanies2.length===0?<div style={{textAlign:"center",padding:40,color:"#ccc"}}>Belum ada perusahaan.</div>:myCompanies2.map(c=><div key={c.id} className="card" style={{padding:18,marginBottom:10}}>
+<div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}>
+<div><h4 style={{fontFamily:"'Outfit'",fontWeight:800,fontSize:15}}>{c.name}</h4><div style={{fontSize:12,color:"#aaa"}}>{c.sector} · {c.city} · Target: Rp {c.target_fund} Jt · Terkumpul: Rp {c.raised_fund||0} Jt</div></div>
+<div style={{display:"flex",gap:6}}><span className="tag" style={{background:c.open_for_investment?"#E8F5E9":"#f5f3ef",color:c.open_for_investment?"#2E7D32":"#999"}}>{c.open_for_investment?"Buka":"Tutup"}</span><button className="btn" style={{background:"#FFEBEE",color:"#C62828",padding:"4px 10px",fontSize:11,borderRadius:8}} onClick={()=>handleDelete('investment_companies',c.id,c.name)}>🗑️</button></div>
+</div>
+<div className="prog" style={{marginTop:8,marginBottom:4}}><div className="prog-fill" style={{width:`${Math.min(100,(c.raised_fund||0)/(c.target_fund||1)*100)}%`,background:C.royal}}/></div>
+{(()=>{const invs=companyInvestors.filter(i=>i.company_id===c.id);return invs.length>0&&<div style={{marginTop:12,borderTop:"1px solid #f0ece6",paddingTop:10}}><div style={{fontSize:12,fontWeight:700,color:C.royal,marginBottom:6}}>💰 {invs.length} Investor (Total: Rp {invs.reduce((a,i)=>a+i.amount,0)} Jt):</div>{invs.map((inv,i)=><div key={i} style={{fontSize:12,color:"#666",padding:"6px 10px",background:"#faf8f5",borderRadius:8,marginBottom:4,display:"flex",justifyContent:"space-between"}}><span>👤 {inv.investor?.full_name} — Rp {inv.amount} Jt</span><span className="tag" style={{background:inv.status==="active"?"#E8F5E9":"#FFF8E1",color:inv.status==="active"?"#2E7D32":"#F9A825",fontSize:10}}>{inv.status}</span></div>)}</div>})()}
+</div>)}
+</div>}
+</>}
+</div>}
 
 </div>);
 }
