@@ -59,3 +59,6 @@ CREATE POLICY "Owner manage BMT" ON public.bmt_institutions FOR ALL USING (auth.
 
 -- Add bmt_id to bmt_applications if not exists
 ALTER TABLE public.bmt_applications ADD COLUMN IF NOT EXISTS bmt_id BIGINT REFERENCES public.bmt_institutions(id);
+
+-- ═══ LOWONGAN KERJA: Tambah kolom company_name ═══
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS company_name TEXT;
