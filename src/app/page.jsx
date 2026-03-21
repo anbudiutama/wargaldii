@@ -4,7 +4,7 @@ import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveCo
 import { createClient } from '@supabase/supabase-js';
 function getSupabase(){if(typeof window==='undefined')return null;const u=process.env.NEXT_PUBLIC_SUPABASE_URL,k=process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;if(!u||!k)return null;if(!window._sb){window._sb=createClient(u,k);}return window._sb;}
 const C={primary:"#1B6B3A",gold:"#D4A017",dark:"#0F0F1A",emerald:"#0D8B4E",royal:"#2E7D32",plum:"#1A5276",copper:"#E8A317",cream:"#FAF8F3"};
-const MODULES=[{id:"marketplace",title:"Marketplace",icon:"🛒",color:C.gold,desc:"Jual beli produk & jasa jamaah"},{id:"elearning",title:"E-Learning",icon:"📚",color:C.primary,desc:"Kursus, quiz & sertifikat digital"},{id:"hibah",title:"Hibah Barkas",icon:"🎁",color:C.copper,desc:"Donasi & terima barang layak"},{id:"investasi",title:"Investasi",icon:"📈",color:C.royal,desc:"Investasi syariah ke usaha jamaah"},{id:"loker",title:"Lowongan Kerja",icon:"💼",color:C.emerald,desc:"Cari & buka lowongan"},{id:"bmt",title:"BMT Syariah",icon:"🏦",color:C.plum,desc:"Pembiayaan syariah tanpa riba"}];
+const MODULES=[{id:"marketplace",title:"Marketplace",icon:"🛒",color:C.gold,desc:"Jual beli produk & jasa jamaah"},{id:"elearning",title:"E-Learning",icon:"📚",color:C.primary,desc:"Kursus, quiz & sertifikat digital"},{id:"hibah",title:"Hibah Barkas",icon:"🎁",color:C.copper,desc:"Donasi & terima barang layak"},{id:"investasi",title:"Investasi",icon:"📈",color:C.royal,desc:"Investasi syariah ke usaha jamaah"},{id:"loker",title:"Lowongan Kerja",icon:"💼",color:C.emerald,desc:"Cari & buka lowongan"},{id:"bmt",title:"BMT Syariah",icon:"🏦",color:C.plum,desc:"Pembiayaan syariah tanpa riba"},{id:"acara",title:"Acara & Berita",icon:"📅",color:C.primary,desc:"Kalender kegiatan & berita jamaah"}];
 const CATEGORIES=["Semua","Makanan","Elektronik","Fashion","Kesehatan","Pertanian","Jasa","Furniture"];
 const STAKEHOLDERS=[{n:"Pembelajar",i:"🎓",b:"Materi & sertifikat"},{n:"Pengajar",i:"👨‍🏫",b:"Nilai dari pembelajar"},{n:"Pencari Kerja",i:"🔍",b:"Info lowongan"},{n:"Produsen",i:"🏭",b:"Karyawan & investor"},{n:"Seller",i:"🏪",b:"Omzet transaksi"},{n:"Pembeli",i:"🛍️",b:"Barang dari jamaah"},{n:"Usaha Bersama",i:"🏢",b:"Omzet & investor"},{n:"Investor",i:"💰",b:"Dividen & bagi hasil"},{n:"BMT",i:"🏦",b:"Nasabah & pembiayaan"},{n:"Pemberi Hibah",i:"🤲",b:"Barang bermanfaat"},{n:"Penerima Hibah",i:"🎁",b:"Barang gratis"}];
 const FLOW=[{icon:"🎓",label:"Belajar",c:C.primary},{icon:"📜",label:"Sertifikat",c:C.copper},{icon:"💼",label:"Kerja",c:C.emerald},{icon:"🛒",label:"Jual Beli",c:C.gold},{icon:"💰",label:"Investasi",c:C.royal},{icon:"🏦",label:"BMT",c:C.plum},{icon:"🤲",label:"Hibah",c:C.copper}];
@@ -24,6 +24,13 @@ export default function App(){
   const [bmtRegForm,setBmtRegForm]=useState({name:"",city:"",address:"",phone:"",description:""});
   const [bmtAppsForMe,setBmtAppsForMe]=useState([]);
   const [dashStats,setDashStats]=useState(null);
+  // Acara module
+  const [events,setEvents]=useState([]),[eventNews,setEventNews]=useState([]),[myRegistrations,setMyRegistrations]=useState([]);
+  const [acaraTab,setAcaraTab]=useState("kalender"),[acaraCat,setAcaraCat]=useState("Semua");
+  const [showEventForm,setShowEventForm]=useState(false),[showNewsForm,setShowNewsForm]=useState(false);
+  const [eventForm,setEventForm]=useState({title:"",description:"",category:"umum",city:"",location:"",event_date:"",end_date:"",max_participants:"",is_free:true,fee:"",image_url:""});
+  const [newsForm,setNewsForm]=useState({event_id:"",title:"",content:"",image_url:""});
+  const [myEvents2,setMyEvents2]=useState([]),[eventRegs,setEventRegs]=useState([]);
   const [profileTab,setProfileTab]=useState("overview"),[dirType,setDirType]=useState("Semua"),[adminTab,setAdminTab]=useState("overview"),[adminStats,setAdminStats]=useState(null),[adminUsers,setAdminUsers]=useState([]);
   // Kelola Konten Saya
   const [kelolaTab,setKelolaTab]=useState("produk");
@@ -62,8 +69,8 @@ export default function App(){
   async function handleLogout(){await getSupabase()?.auth.signOut();setUser(null);setProfile(null);nav("home");}
 
   // Data fetching
-  useEffect(()=>{fetchP();fetchC();fetchH();fetchI();fetchJ();fetchDir();fetchBmtInst();},[]);
-  useEffect(()=>{if(user){fetchMI();fetchBH();fetchN();fetchMO();fetchMyCerts();fetchMyApps();fetchMyHibahData();fetchChatList();fetchBmtAppsForMe();}},[user]);
+  useEffect(()=>{fetchP();fetchC();fetchH();fetchI();fetchJ();fetchDir();fetchBmtInst();fetchEvents();fetchEventNews();},[]);
+  useEffect(()=>{if(user){fetchMI();fetchBH();fetchN();fetchMO();fetchMyCerts();fetchMyApps();fetchMyHibahData();fetchChatList();fetchBmtAppsForMe();fetchMyRegs();}},[user]);
   // FIX#3: Pre-fill
   useEffect(()=>{if(profile){setCheckoutName(profile.full_name||"");setCheckoutPhone(profile.phone||"");setHibahForm(p=>({...p,city:profile.city||""}));setJobForm(p=>({...p,city:profile.city||""}));setCompanyForm(p=>({...p,city:profile.city||""}));setProfileForm({full_name:profile.full_name||"",phone:profile.phone||"",city:profile.city||"",cabang_ldii:profile.cabang_ldii||"",bio:profile.bio||"",skills:(profile.skills||[]).join(", ")});}},[profile]);
 
@@ -81,6 +88,11 @@ export default function App(){
   async function fetchMyHibahData(){const r1=await getSupabase()?.from('hibah_requests').select('*,item:hibah_items(name,condition,city,donor_id)').eq('requester_id',user.id).order('created_at',{ascending:false});const r2=await getSupabase()?.from('hibah_items').select('*').eq('donor_id',user.id).order('created_at',{ascending:false});if(r1?.data)setMyHibahReqs(r1.data);if(r2?.data)setMyHibahDonated(r2.data);}
   async function fetchBmtInst(){const r=await getSupabase()?.from('bmt_institutions').select('*,owner:profiles!owner_id(full_name,phone)').eq('status','active');if(r?.data)setBmtInstitutions(r.data);}
   async function fetchBmtAppsForMe(){if(!user)return;const r0=await getSupabase()?.from('bmt_institutions').select('id').eq('owner_id',user.id);const ids=(r0?.data||[]).map(b=>b.id);if(!ids.length)return;const r=await getSupabase()?.from('bmt_applications').select('*,applicant:profiles!applicant_id(full_name,phone,city)').in('bmt_id',ids).order('created_at',{ascending:false});if(r?.data)setBmtAppsForMe(r.data);}
+  // Acara fetches
+  async function fetchEvents(){const r=await getSupabase()?.from('events').select('*,organizer:profiles!organizer_id(full_name,city)').order('event_date',{ascending:true});if(r?.data)setEvents(r.data);}
+  async function fetchEventNews(){const r=await getSupabase()?.from('event_news').select('*,author:profiles!author_id(full_name),event:events(title)').order('created_at',{ascending:false});if(r?.data)setEventNews(r.data);}
+  async function fetchMyRegs(){if(!user)return;const r=await getSupabase()?.from('event_registrations').select('*,event:events(title,event_date,city,location)').eq('user_id',user.id);if(r?.data)setMyRegistrations(r.data);}
+  async function fetchMyEvents(){if(!user)return;const r=await getSupabase()?.from('events').select('*').eq('organizer_id',user.id).order('created_at',{ascending:false});setMyEvents2(r?.data||[]);const eids=(r?.data||[]).map(e=>e.id);if(eids.length){const r2=await getSupabase()?.from('event_registrations').select('*,user:profiles!user_id(full_name,phone,city)').in('event_id',eids).order('created_at',{ascending:false});setEventRegs(r2?.data||[]);}}
   async function fetchDashStats(){const sb=getSupabase();if(!sb)return;const[rU,rO,rP,rC,rJ,rH,rI,rB,rCert]=await Promise.all([sb.from('profiles').select('*',{count:'exact',head:true}),sb.from('orders').select('*',{count:'exact',head:true}),sb.from('products').select('*',{count:'exact',head:true}),sb.from('courses').select('*',{count:'exact',head:true}),sb.from('jobs').select('*',{count:'exact',head:true}),sb.from('hibah_items').select('*',{count:'exact',head:true}),sb.from('investments').select('amount').not('amount','is',null),sb.from('bmt_applications').select('amount,status'),sb.from('certificates').select('*',{count:'exact',head:true})]);const totalInv=(rI?.data||[]).reduce((a,i)=>a+(i.amount||0),0);const totalBmt=(rB?.data||[]).reduce((a,b)=>a+(b.amount||0),0);const activeBmt=(rB?.data||[]).filter(b=>b.status==='active').length;setDashStats({users:rU?.count||0,orders:rO?.count||0,products:rP?.count||0,courses:rC?.count||0,jobs:rJ?.count||0,hibah:rH?.count||0,totalInvestments:totalInv,investCount:(rI?.data||[]).length,totalBmt,activeBmt,bmtCount:(rB?.data||[]).length,certs:rCert?.count||0});}
   async function fetchAS(){const sb=getSupabase();if(!sb)return;const[r1,r2,r3,r4,r5,r6,r7,r8]=await Promise.all([sb.from('profiles').select('*').order('created_at',{ascending:false}).limit(50),sb.from('orders').select('*',{count:'exact',head:true}),sb.from('bmt_applications').select('*,applicant:profiles!applicant_id(full_name,phone,city),bmt:bmt_institutions(name)').eq('status','pending'),sb.from('products').select('*',{count:'exact',head:true}),sb.from('jobs').select('*',{count:'exact',head:true}),sb.from('courses').select('*',{count:'exact',head:true}),sb.from('investments').select('amount'),sb.from('bmt_applications').select('*',{count:'exact',head:true})]);setAdminStats({users:r1?.data?.length||0,orders:r2?.count||0,pendingBmt:r3?.data||[],products:r4?.count||0,jobs:r5?.count||0,courses:r6?.count||0,totalInvested:(r7?.data||[]).reduce((a,i)=>a+(i.amount||0),0),bmtTotal:r8?.count||0});setAdminUsers(r1?.data||[]);}
 
@@ -112,6 +124,11 @@ export default function App(){
   async function handleBmtApply(){if(!user){setLoginM(true);return;}if(!selectedBmt){showT("Pilih BMT tujuan dulu","error");return;}if(!bmtPurpose.trim()||bmtPurpose.trim().length<10){showT("Tujuan pembiayaan minimal 10 karakter","error");return;}const bmt=bmtInstitutions.find(b=>b.id===selectedBmt);const mg=bmtType==="produktif"?(bmt?.margin_produktif||0.012):(bmt?.margin_konsumtif||0.015);const tot=bmtAmt*(1+mg*bmtTenor);const mo=tot/bmtTenor;const{error}=await getSupabase()?.from('bmt_applications').insert({applicant_id:user.id,bmt_id:selectedBmt,amount:bmtAmt,tenor:bmtTenor,type:bmtType,purpose:bmtPurpose,monthly_payment:mo,total_payment:tot,margin_rate:mg});if(error){showT("❌ "+error.message,"error");return;}if(bmt)await getSupabase()?.from('notifications').insert({user_id:bmt.owner_id,title:"Pengajuan BMT Baru",message:`${profile?.full_name} mengajukan pembiayaan Rp ${bmtAmt} Jt`,type:"bmt"});showT("✅ Pengajuan dikirim ke "+bmt?.name+"!");setBmtSubmitted(false);setBmtPurpose("");setSelectedBmt(null);setBmtTab("riwayat");fetchBH();}
   async function handleAddBmt(){if(!user){setLoginM(true);return;}if(!bmtRegForm.name.trim()){showT("Nama BMT wajib diisi","error");return;}if(!bmtRegForm.city.trim()){showT("Kota wajib diisi","error");return;}if(bmtRegForm.phone&&!vPhone(bmtRegForm.phone)){showT("No. telp harus diawali 62, minimal 10 digit","error");return;}const{error}=await getSupabase()?.from('bmt_institutions').insert({owner_id:user.id,name:bmtRegForm.name,city:bmtRegForm.city,address:bmtRegForm.address,phone:bmtRegForm.phone,description:bmtRegForm.description});if(error){showT("❌ "+error.message,"error");return;}showT("✅ BMT berhasil didaftarkan!");setShowBmtRegForm(false);setBmtRegForm({name:"",city:"",address:"",phone:"",description:""});fetchBmtInst();fetchDir();}
   async function handleBmtAction(appId,action){const status=action==='approve'?'active':'rejected';await getSupabase()?.from('bmt_applications').update({status,approved_at:action==='approve'?new Date().toISOString():null}).eq('id',appId);showT(action==='approve'?"✅ Disetujui!":"Ditolak.");fetchBmtAppsForMe();}
+
+  // Acara handlers
+  async function handleAddEvent(){if(!user){setLoginM(true);return;}if(!eventForm.title.trim()){showT("Judul acara wajib diisi","error");return;}if(!eventForm.event_date){showT("Tanggal acara wajib diisi","error");return;}if(!eventForm.city.trim()){showT("Kota wajib diisi","error");return;}const{error}=await getSupabase()?.from('events').insert({organizer_id:user.id,title:eventForm.title,description:eventForm.description,category:eventForm.category,city:eventForm.city,location:eventForm.location,event_date:eventForm.event_date,end_date:eventForm.end_date||null,max_participants:eventForm.max_participants?parseInt(eventForm.max_participants):null,is_free:eventForm.is_free,fee:eventForm.is_free?0:parseFloat(eventForm.fee)||0,image_url:eventForm.image_url||null});if(error){showT("❌ "+error.message,"error");return;}showT("✅ Acara berhasil dibuat!");setShowEventForm(false);setEventForm({title:"",description:"",category:"umum",city:profile?.city||"",location:"",event_date:"",end_date:"",max_participants:"",is_free:true,fee:"",image_url:""});fetchEvents();}
+  async function handleRegisterEvent(eventId){if(!user){setLoginM(true);return;}const{error}=await getSupabase()?.from('event_registrations').insert({event_id:eventId,user_id:user.id});if(error){if(error.code==='23505')showT("Anda sudah terdaftar","error");else showT("❌ "+error.message,"error");return;}const ev=events.find(e=>e.id===eventId);if(ev)await getSupabase()?.from('notifications').insert({user_id:ev.organizer_id,title:"Peserta Baru",message:`${profile?.full_name} mendaftar acara "${ev.title}"`,type:"event"});showT("✅ Berhasil mendaftar!");fetchMyRegs();fetchEvents();}
+  async function handleAddNews(){if(!user){setLoginM(true);return;}if(!newsForm.title.trim()){showT("Judul berita wajib diisi","error");return;}if(!newsForm.content.trim()||newsForm.content.trim().length<20){showT("Isi berita minimal 20 karakter","error");return;}const{error}=await getSupabase()?.from('event_news').insert({event_id:newsForm.event_id||null,author_id:user.id,title:newsForm.title,content:newsForm.content,image_url:newsForm.image_url||null});if(error){showT("❌ "+error.message,"error");return;}showT("✅ Berita berhasil dipublish!");setShowNewsForm(false);setNewsForm({event_id:"",title:"",content:"",image_url:""});fetchEventNews();}
   async function handleAddProduct(){if(!user){setLoginM(true);return;}if(!productForm.name.trim()){showT("Nama produk wajib diisi","error");return;}if(!vPrice(productForm.price)){showT("Harga minimal Rp 1.000","error");return;}if(!vStock(productForm.stock)){showT("Stok minimal 1","error");return;}const{error}=await getSupabase()?.from('products').insert({seller_id:user.id,name:productForm.name,description:productForm.description,price:parseInt(productForm.price),stock:parseInt(productForm.stock),category:productForm.category,image_url:productForm.image_url||null,status:'active'});if(error){showT("❌ "+error.message,"error");return;}showT("✅ Produk ditambahkan!");setShowProductForm(false);fetchDir();setProductForm({name:"",description:"",price:"",stock:"",category:"Makanan",image_url:""});fetchP();}
   async function handleAddCourse(){if(!user){setLoginM(true);return;}if(!courseForm.title.trim()){showT("Judul kursus wajib diisi","error");return;}const{data:co,error}=await getSupabase()?.from('courses').insert({instructor_id:user.id,title:courseForm.title,description:courseForm.description,level:courseForm.level,duration:courseForm.duration,status:'active'}).select().single();if(error){showT("❌ "+error.message,"error");return;}const mf=courseMods.filter(m=>m.title);if(mf.length)await getSupabase()?.from('course_modules').insert(mf.map((m,i)=>({course_id:co.id,title:m.title,content:m.content,type:m.type,duration:m.duration,sort_order:i})));const qf=courseQuizzes.filter(q=>q.question);if(qf.length)await getSupabase()?.from('course_quizzes').insert(qf.map((q,i)=>({course_id:co.id,question:q.question,options:q.options,correct_answer:q.correct_answer,sort_order:i})));showT("✅ Kursus dibuat!");setShowCourseForm(false);setCourseForm({title:"",description:"",level:"pemula",duration:""});setCourseMods([{title:"",content:"",type:"article",duration:""}]);setCourseQuizzes([{question:"",options:["","","",""],correct_answer:0}]);setCourseStep(1);fetchC();}
   async function handleAddJob(){if(!user){setLoginM(true);return;}if(!jobForm.company_name?.trim()){showT("Nama perusahaan wajib diisi","error");return;}if(!jobForm.title.trim()){showT("Judul posisi wajib diisi","error");return;}if(!jobForm.city.trim()){showT("Kota wajib diisi","error");return;}if(!jobForm.description.trim()){showT("Deskripsi pekerjaan wajib diisi","error");return;}const{error}=await getSupabase()?.from('jobs').insert({company_id:user.id,company_name:jobForm.company_name,title:jobForm.title,description:jobForm.description,requirements:jobForm.requirements.split('\n').filter(r=>r.trim()),city:jobForm.city,type:jobForm.type,salary:jobForm.salary,status:'active'});if(error){showT("❌ "+error.message,"error");return;}showT("✅ Lowongan dibuat!");setShowJobForm(false);setJobForm({title:"",description:"",requirements:"",city:profile?.city||"",type:"Full-time",salary:"",company_name:""});fetchJ();}
@@ -207,14 +224,14 @@ export default function App(){
   useEffect(()=>{setTimeout(()=>setHeroReady(true),150);},[]);
   useEffect(()=>{if(page==="home"){const t=setInterval(()=>setFlowStep(p=>(p+1)%7),2500);return()=>clearInterval(t);};},[page]);
   useEffect(()=>{if(page==="admin"&&profile?.role==="admin")fetchAS();},[page]);
-  useEffect(()=>{if(page==="kelola"&&user)fetchKelola();},[page]);
+  useEffect(()=>{if(page==="kelola"&&user){fetchKelola();fetchMyEvents();}},[page]);
   useEffect(()=>{if(page==="dashboard")fetchDashStats();},[page]);
 
   // Hash Routing — URL berubah sesuai halaman
   const _navLock={v:false};
   const nav=(p,s=null)=>{setPage(p);setSub(s);setNotif(false);setCartOpen(false);setMobileMenu(false);setQuizStarted(false);setQuizDone(false);setQuizAnswers({});setActiveLesson(0);setAuthError("");setAuthSuccess("");window.scrollTo({top:0,behavior:"smooth"});_navLock.v=true;const hash=s?`${p}-${s}`:p==="home"?"":p;if(hash)window.location.hash=hash;else if(window.location.hash)history.replaceState(null,"",window.location.pathname);setTimeout(()=>{_navLock.v=false;},100);};
   // Read hash on first load + back/forward button
-  useEffect(()=>{const readHash=()=>{if(_navLock.v)return;const h=window.location.hash.replace('#','');if(!h){setPage("home");return;}const dash=h.indexOf('-');const pg=dash>0?h.substring(0,dash):h;const sid=dash>0?h.substring(dash+1):null;if(['marketplace','elearning','hibah','investasi','loker','bmt','dashboard','profile','kelola','admin','checkout'].includes(pg)){setPage(pg);setSub(sid||null);}};readHash();window.addEventListener('hashchange',readHash);return()=>window.removeEventListener('hashchange',readHash);},[]);
+  useEffect(()=>{const readHash=()=>{if(_navLock.v)return;const h=window.location.hash.replace('#','');if(!h){setPage("home");return;}const dash=h.indexOf('-');const pg=dash>0?h.substring(0,dash):h;const sid=dash>0?h.substring(dash+1):null;if(['marketplace','elearning','hibah','investasi','loker','bmt','acara','dashboard','profile','kelola','admin','checkout'].includes(pg)){setPage(pg);setSub(sid||null);}};readHash();window.addEventListener('hashchange',readHash);return()=>window.removeEventListener('hashchange',readHash);},[]);
 
   // WhatsApp Share helper
   const shareWA=(text)=>{window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);};
@@ -400,6 +417,125 @@ export default function App(){
 {/* BMT Registration Modal */}
 {showBmtRegForm&&<div className="modal-bg" onClick={()=>setShowBmtRegForm(false)}><div className="modal" onClick={e=>e.stopPropagation()}><button onClick={()=>setShowBmtRegForm(false)} style={{position:"absolute",top:12,right:16,background:"none",border:"none",fontSize:17,cursor:"pointer",color:"#ccc"}}>✕</button><h3 className="hmd" style={{marginBottom:12}}>🏦 Daftarkan Lembaga BMT</h3><input className="inp" placeholder="Nama BMT *" value={bmtRegForm.name} onChange={e=>setBmtRegForm(p=>({...p,name:e.target.value}))}/><input className="inp" placeholder="Kota *" value={bmtRegForm.city} onChange={e=>setBmtRegForm(p=>({...p,city:e.target.value}))}/><input className="inp" placeholder="Alamat" value={bmtRegForm.address} onChange={e=>setBmtRegForm(p=>({...p,address:e.target.value}))}/><input className="inp" placeholder="No. Telepon (62812xxxxx)" value={bmtRegForm.phone} onChange={e=>setBmtRegForm(p=>({...p,phone:e.target.value}))}/><textarea className="inp" placeholder="Deskripsi BMT..." style={{minHeight:60}} value={bmtRegForm.description} onChange={e=>setBmtRegForm(p=>({...p,description:e.target.value}))}/><button className="btn bp" style={{width:"100%"}} disabled={!bmtRegForm.name||!bmtRegForm.city} onClick={handleAddBmt}>Daftarkan BMT →</button></div></div>}
 
+{/* ═══ ACARA & BERITA ═══ */}
+{page==="acara"&&!sub&&<div style={{maxWidth:1280,margin:"0 auto",padding:"28px 24px 64px"}}><button className="back" onClick={()=>nav("home")}>← Beranda</button>
+<h1 className="hlg" style={{marginBottom:4}}>📅 Acara & Berita</h1>
+<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8}}>
+<p style={{color:"#aaa",fontSize:13}}>{events.length} acara · {eventNews.length} berita</p>
+<div style={{display:"flex",gap:6}}><button className="btn bp bs" onClick={()=>{if(!user){setLoginM(true);return}setShowEventForm(true)}}>➕ Buat Acara</button><button className="btn bo bs" onClick={()=>{if(!user){setLoginM(true);return}setShowNewsForm(true)}}>📝 Tulis Berita</button></div>
+</div>
+<div style={{display:"flex",gap:4,justifyContent:"center",marginBottom:20}}>
+{[{k:"kalender",l:"📅 Kalender"},{k:"berita",l:"📰 Berita ("+eventNews.length+")"},{k:"acara-saya",l:"🎟️ Acara Saya ("+myRegistrations.length+")"}].map(t=><button key={t.k} className={`tab ${acaraTab===t.k?"tab-a":""}`} onClick={()=>setAcaraTab(t.k)}>{t.l}</button>)}
+</div>
+
+{/* Tab: Kalender */}
+{acaraTab==="kalender"&&<div>
+<div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:16}}>
+{["Semua","pengajian","pelatihan","sosial","ekonomi","rapat"].map(c=><button key={c} className={`tab ${acaraCat===c?"tab-a":""}`} onClick={()=>setAcaraCat(c)}>{c==="Semua"?c:c.charAt(0).toUpperCase()+c.slice(1)}</button>)}
+</div>
+{events.filter(e=>(acaraCat==="Semua"||e.category===acaraCat)&&e.status!=="cancelled").length===0?<div style={{textAlign:"center",padding:60,color:"#ccc"}}><div style={{fontSize:48}}>📅</div><p style={{marginTop:10}}>Belum ada acara.</p></div>
+:<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))",gap:14}}>
+{events.filter(e=>(acaraCat==="Semua"||e.category===acaraCat)&&e.status!=="cancelled").map(e=>{const d=new Date(e.event_date);const isPast=d<new Date();const regCount=myRegistrations.filter(r=>r.event_id===e.id).length;return<div key={e.id} className="card" style={{cursor:"pointer"}} onClick={()=>nav("acara",e.id)}>
+{e.image_url?<div style={{height:140,overflow:"hidden"}}><img src={e.image_url} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/></div>
+:<div style={{height:80,background:`linear-gradient(135deg,${C.primary}15,${C.gold}10)`,display:"flex",alignItems:"center",justifyContent:"center"}}><span style={{fontSize:36}}>📅</span></div>}
+<div style={{padding:"14px 16px"}}>
+<div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><span className="tag" style={{background:`${C.primary}10`,color:C.primary}}>{e.category}</span><span className="tag" style={{background:isPast?"#f5f3ef":e.status==="ongoing"?"#FFF8E1":"#E8F5E9",color:isPast?"#999":e.status==="ongoing"?"#F9A825":"#2E7D32"}}>{isPast?"Selesai":e.status==="ongoing"?"Berlangsung":"Akan Datang"}</span></div>
+<h4 style={{fontFamily:"'Outfit'",fontWeight:800,fontSize:15,marginBottom:4}}>{e.title}</h4>
+<div style={{fontSize:12,color:"#aaa"}}>📅 {d.toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric"})} · {d.toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"})}</div>
+<div style={{fontSize:12,color:"#aaa"}}>📍 {e.location||e.city} · 👤 {e.organizer?.full_name}</div>
+<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:8}}>{e.max_participants&&<span style={{fontSize:11,color:"#bbb"}}>Kuota: {e.max_participants} orang</span>}<span style={{fontSize:12,fontWeight:700,color:e.is_free?C.emerald:C.gold}}>{e.is_free?"GRATIS":"Rp "+e.fee?.toLocaleString("id-ID")}</span></div>
+</div>
+</div>})}
+</div>}
+</div>}
+
+{/* Tab: Berita */}
+{acaraTab==="berita"&&<div>
+{eventNews.length===0?<div style={{textAlign:"center",padding:60,color:"#ccc"}}><div style={{fontSize:48}}>📰</div><p style={{marginTop:10}}>Belum ada berita.</p></div>
+:<div style={{display:"grid",gap:14}}>
+{eventNews.map(n=><div key={n.id} className="card" style={{padding:20}}>
+{n.image_url&&<div style={{marginBottom:12,borderRadius:12,overflow:"hidden"}}><img src={n.image_url} alt="" style={{width:"100%",height:200,objectFit:"cover"}}/></div>}
+<h3 style={{fontFamily:"'Outfit'",fontWeight:800,fontSize:17,marginBottom:6}}>{n.title}</h3>
+{n.event&&<div style={{fontSize:12,color:C.primary,marginBottom:6}}>📅 Terkait acara: {n.event.title}</div>}
+<p style={{fontSize:13.5,color:"#666",lineHeight:1.8,whiteSpace:"pre-wrap",marginBottom:10}}>{n.content.slice(0,300)}{n.content.length>300?"...":""}</p>
+<div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{fontSize:12,color:"#aaa"}}>✍️ {n.author?.full_name} · {new Date(n.created_at).toLocaleDateString("id-ID")}</div>
+<button className="btn bs" style={{background:"#25D366",color:"white"}} onClick={()=>shareWA(`📰 ${n.title}\n\n${n.content.slice(0,100)}...\n\nBaca selengkapnya di https://wargaldii.com/#acara`)}>📲</button></div>
+</div>)}
+</div>}
+</div>}
+
+{/* Tab: Acara Saya */}
+{acaraTab==="acara-saya"&&<div>
+{!user?<div style={{textAlign:"center",padding:48,color:"#ccc"}}>Login dulu.</div>
+:myRegistrations.length===0?<div style={{textAlign:"center",padding:48,color:"#ccc"}}>Anda belum mendaftar acara apapun.</div>
+:myRegistrations.map(r=><div key={r.id} className="card" style={{padding:18,marginBottom:10}}>
+<div style={{display:"flex",justifyContent:"space-between"}}><h4 style={{fontFamily:"'Outfit'",fontWeight:800,fontSize:15}}>{r.event?.title||"Acara"}</h4><span className="tag" style={{background:r.status==="attended"?"#E8F5E9":"#FFF8E1",color:r.status==="attended"?"#2E7D32":"#F9A825"}}>{r.status==="attended"?"Hadir":r.status==="cancelled"?"Batal":"Terdaftar"}</span></div>
+<div style={{fontSize:12,color:"#aaa",marginTop:4}}>📅 {r.event?.event_date?new Date(r.event.event_date).toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"}):"-"} · 📍 {r.event?.location||r.event?.city||"-"}</div>
+</div>)}
+</div>}
+</div>}
+
+{/* ACARA DETAIL */}
+{page==="acara"&&sub&&(()=>{const e=events.find(x=>x.id==sub);if(!e)return null;const d=new Date(e.event_date);const isPast=d<new Date();const isRegistered=myRegistrations.some(r=>r.event_id===e.id);const relatedNews=eventNews.filter(n=>n.event_id===e.id);return<div style={{maxWidth:800,margin:"0 auto",padding:"28px 24px 64px"}}><button className="back" onClick={()=>nav("acara")}>← Acara</button>
+{e.image_url&&<div style={{borderRadius:18,overflow:"hidden",marginBottom:20}}><img src={e.image_url} alt="" style={{width:"100%",height:280,objectFit:"cover"}}/></div>}
+<div className="card" style={{padding:24,marginBottom:16}}>
+<div style={{display:"flex",gap:6,marginBottom:10,flexWrap:"wrap"}}><span className="tag" style={{background:`${C.primary}10`,color:C.primary}}>{e.category}</span><span className="tag" style={{background:isPast?"#f5f3ef":"#E8F5E9",color:isPast?"#999":"#2E7D32"}}>{isPast?"Selesai":"Akan Datang"}</span><span className="tag" style={{background:e.is_free?"#E8F5E9":"#FFF8E1",color:e.is_free?"#2E7D32":"#F9A825"}}>{e.is_free?"GRATIS":"Rp "+e.fee?.toLocaleString("id-ID")}</span></div>
+<h2 style={{fontFamily:"'DM Serif Display'",fontSize:26,marginBottom:10}}>{e.title}</h2>
+<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
+<div style={{background:"#faf8f5",padding:12,borderRadius:10}}><div style={{fontSize:11,color:"#999"}}>📅 Tanggal</div><div style={{fontWeight:700,fontSize:13}}>{d.toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</div><div style={{fontSize:12,color:"#aaa"}}>{d.toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"})} WIB{e.end_date?" — "+new Date(e.end_date).toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"})+" WIB":""}</div></div>
+<div style={{background:"#faf8f5",padding:12,borderRadius:10}}><div style={{fontSize:11,color:"#999"}}>📍 Lokasi</div><div style={{fontWeight:700,fontSize:13}}>{e.location||"-"}</div><div style={{fontSize:12,color:"#aaa"}}>{e.city}</div></div>
+</div>
+<div style={{fontSize:14,color:"#666",lineHeight:1.8,whiteSpace:"pre-wrap",marginBottom:16}}>{e.description}</div>
+<div style={{fontSize:12,color:"#aaa",marginBottom:14}}>Penyelenggara: <b>{e.organizer?.full_name}</b>{e.max_participants&&` · Kuota: ${e.max_participants} orang`}</div>
+{!isPast&&<div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+{isRegistered?<div className="ok" style={{flex:1,textAlign:"center"}}>✅ Anda sudah terdaftar</div>
+:<button className="btn bp" style={{flex:1}} onClick={()=>handleRegisterEvent(e.id)}>🎟️ Daftar Acara</button>}
+<button className="btn" style={{background:"#25D366",color:"white",padding:"12px 20px",borderRadius:50}} onClick={()=>shareWA(`📅 ${e.title}\n${d.toLocaleDateString("id-ID")} · 📍 ${e.location||e.city}\n${e.is_free?"GRATIS!":""}\n\nInfo & daftar: https://wargaldii.com/#acara-${e.id}`)}>📲 Share</button></div>}
+</div>
+{/* Berita terkait */}
+{relatedNews.length>0&&<div style={{marginTop:16}}><h3 className="hmd" style={{marginBottom:10}}>📰 Berita Terkait</h3>
+{relatedNews.map(n=><div key={n.id} className="card" style={{padding:18,marginBottom:10}}>
+{n.image_url&&<div style={{borderRadius:10,overflow:"hidden",marginBottom:8}}><img src={n.image_url} alt="" style={{width:"100%",height:160,objectFit:"cover"}}/></div>}
+<h4 style={{fontFamily:"'Outfit'",fontWeight:800,fontSize:15}}>{n.title}</h4>
+<p style={{fontSize:13,color:"#666",lineHeight:1.7,marginTop:6,whiteSpace:"pre-wrap"}}>{n.content}</p>
+<div style={{fontSize:11,color:"#aaa",marginTop:6}}>✍️ {n.author?.full_name} · {new Date(n.created_at).toLocaleDateString("id-ID")}</div>
+</div>)}</div>}
+</div>})()}
+
+{/* Form: Buat Acara */}
+{showEventForm&&<div className="modal-bg" onClick={()=>setShowEventForm(false)}><div className="modal" style={{maxWidth:520}} onClick={e=>e.stopPropagation()}>
+<button onClick={()=>setShowEventForm(false)} style={{position:"absolute",top:12,right:16,background:"none",border:"none",fontSize:17,cursor:"pointer",color:"#ccc"}}>✕</button>
+<h3 className="hmd" style={{marginBottom:12}}>📅 Buat Acara Baru</h3>
+<input className="inp" placeholder="Judul Acara *" value={eventForm.title} onChange={e=>setEventForm(p=>({...p,title:e.target.value}))}/>
+<select className="sel" value={eventForm.category} onChange={e=>setEventForm(p=>({...p,category:e.target.value}))}><option value="pengajian">🕌 Pengajian</option><option value="pelatihan">📚 Pelatihan</option><option value="sosial">🤲 Sosial</option><option value="ekonomi">💰 Ekonomi</option><option value="rapat">🏢 Rapat</option><option value="umum">📋 Umum</option></select>
+<textarea className="inp" placeholder="Deskripsi acara..." style={{minHeight:60}} value={eventForm.description} onChange={e=>setEventForm(p=>({...p,description:e.target.value}))}/>
+<div style={{display:"flex",gap:8}}><div style={{flex:1}}><label style={{fontSize:11,fontWeight:700,color:"#666"}}>Tanggal & Jam *</label><input className="inp" type="datetime-local" value={eventForm.event_date} onChange={e=>setEventForm(p=>({...p,event_date:e.target.value}))}/></div><div style={{flex:1}}><label style={{fontSize:11,fontWeight:700,color:"#666"}}>Selesai (opsional)</label><input className="inp" type="datetime-local" value={eventForm.end_date} onChange={e=>setEventForm(p=>({...p,end_date:e.target.value}))}/></div></div>
+<div style={{display:"flex",gap:8}}><input className="inp" placeholder="Kota *" style={{flex:1}} value={eventForm.city} onChange={e=>setEventForm(p=>({...p,city:e.target.value}))}/><input className="inp" placeholder="Lokasi/Alamat" style={{flex:1}} value={eventForm.location} onChange={e=>setEventForm(p=>({...p,location:e.target.value}))}/></div>
+<div style={{display:"flex",gap:8,alignItems:"center",marginBottom:10}}>
+<input className="inp" placeholder="Maks Peserta (opsional)" type="number" style={{flex:1,marginBottom:0}} value={eventForm.max_participants} onChange={e=>setEventForm(p=>({...p,max_participants:e.target.value}))}/>
+<label style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer",fontSize:13,fontWeight:600,whiteSpace:"nowrap"}}><input type="checkbox" checked={eventForm.is_free} onChange={e=>setEventForm(p=>({...p,is_free:e.target.checked}))}/> Gratis</label>
+{!eventForm.is_free&&<input className="inp" placeholder="Biaya (Rp)" type="number" style={{flex:1,marginBottom:0}} value={eventForm.fee} onChange={e=>setEventForm(p=>({...p,fee:e.target.value}))}/>}
+</div>
+{eventForm.image_url?<div style={{position:"relative",borderRadius:12,overflow:"hidden",marginBottom:10}}><img src={eventForm.image_url} alt="" style={{width:"100%",height:120,objectFit:"cover"}}/><button onClick={()=>setEventForm(p=>({...p,image_url:""}))} style={{position:"absolute",top:6,right:6,background:"rgba(0,0,0,.5)",color:"white",border:"none",borderRadius:50,width:26,height:26,cursor:"pointer"}}>✕</button></div>
+:<label style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"16px",border:"2px dashed #ddd",borderRadius:12,cursor:"pointer",background:"#faf8f5",marginBottom:10}}><span style={{fontSize:24}}>📷</span><span style={{fontSize:11,color:"#999"}}>Upload banner acara</span><input type="file" accept="image/*" style={{display:"none"}} onChange={async(e)=>{const fl=e.target.files[0];if(!fl)return;const url=await uploadFile(fl,"events");if(url)setEventForm(p=>({...p,image_url:url}));}}/></label>}
+<button className="btn bp" style={{width:"100%"}} disabled={!eventForm.title||!eventForm.event_date||!eventForm.city} onClick={handleAddEvent}>Buat Acara →</button>
+</div></div>}
+
+{/* Form: Tulis Berita */}
+{showNewsForm&&<div className="modal-bg" onClick={()=>setShowNewsForm(false)}><div className="modal" style={{maxWidth:520}} onClick={e=>e.stopPropagation()}>
+<button onClick={()=>setShowNewsForm(false)} style={{position:"absolute",top:12,right:16,background:"none",border:"none",fontSize:17,cursor:"pointer",color:"#ccc"}}>✕</button>
+<h3 className="hmd" style={{marginBottom:12}}>📝 Tulis Berita</h3>
+<select className="sel" value={newsForm.event_id} onChange={e=>setNewsForm(p=>({...p,event_id:e.target.value}))}>
+<option value="">Pilih acara terkait (opsional)</option>
+{events.filter(ev=>ev.organizer_id===user?.id||new Date(ev.event_date)<new Date()).map(ev=><option key={ev.id} value={ev.id}>{ev.title}</option>)}
+</select>
+<input className="inp" placeholder="Judul Berita *" value={newsForm.title} onChange={e=>setNewsForm(p=>({...p,title:e.target.value}))}/>
+<textarea className="inp" placeholder="Isi berita lengkap... (min 20 karakter)" style={{minHeight:120}} value={newsForm.content} onChange={e=>setNewsForm(p=>({...p,content:e.target.value}))}/>
+{newsForm.image_url?<div style={{position:"relative",borderRadius:12,overflow:"hidden",marginBottom:10}}><img src={newsForm.image_url} alt="" style={{width:"100%",height:120,objectFit:"cover"}}/><button onClick={()=>setNewsForm(p=>({...p,image_url:""}))} style={{position:"absolute",top:6,right:6,background:"rgba(0,0,0,.5)",color:"white",border:"none",borderRadius:50,width:26,height:26,cursor:"pointer"}}>✕</button></div>
+:<label style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"16px",border:"2px dashed #ddd",borderRadius:12,cursor:"pointer",background:"#faf8f5",marginBottom:10}}><span style={{fontSize:24}}>📷</span><span style={{fontSize:11,color:"#999"}}>Upload foto dokumentasi</span><input type="file" accept="image/*" style={{display:"none"}} onChange={async(e)=>{const fl=e.target.files[0];if(!fl)return;const url=await uploadFile(fl,"news");if(url)setNewsForm(p=>({...p,image_url:url}));}}/></label>}
+<button className="btn bp" style={{width:"100%"}} disabled={!newsForm.title||!newsForm.content} onClick={handleAddNews}>Publish Berita →</button>
+</div></div>}
+
 {/* PROFILE */}
 {page==="profile"&&<div style={{maxWidth:900,margin:"0 auto",padding:"28px 24px 64px"}}><button className="back" onClick={()=>nav("home")}>← Beranda</button><h1 className="hlg" style={{marginBottom:20}}>👤 Profil Saya</h1>{!user?<div className="err">Login dulu. <span style={{cursor:"pointer",textDecoration:"underline"}} onClick={()=>setLoginM(true)}>Login</span></div>:<>
 {/* Profile Header */}
@@ -425,7 +561,7 @@ export default function App(){
 </div>
 {/* Tabs */}
 <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:16}}>
-{[{k:"orders",l:"🛒 Pesanan",c:myOrders.length},{k:"certs",l:"🏅 Sertifikat",c:myCertificates.length},{k:"apps",l:"💼 Lamaran",c:myApplications.length},{k:"invest",l:"📈 Investasi",c:myInvestments.length},{k:"hibah",l:"🎁 Hibah",c:myHibahDonated.length+myHibahReqs.length},{k:"bmt",l:"🏦 BMT",c:bmtHistory.length},{k:"edit",l:"✏️ Edit"}].map(t=><button key={t.k} className={`tab ${profileTab===t.k?"tab-a":""}`} onClick={()=>setProfileTab(t.k)}>{t.l}{t.c!==undefined?` (${t.c})`:""}</button>)}
+{[{k:"orders",l:"🛒 Pesanan",c:myOrders.length},{k:"certs",l:"🏅 Sertifikat",c:myCertificates.length},{k:"apps",l:"💼 Lamaran",c:myApplications.length},{k:"invest",l:"📈 Investasi",c:myInvestments.length},{k:"acara-profile",l:"📅 Acara",c:myRegistrations.length},{k:"hibah",l:"🎁 Hibah",c:myHibahDonated.length+myHibahReqs.length},{k:"bmt",l:"🏦 BMT",c:bmtHistory.length},{k:"edit",l:"✏️ Edit"}].map(t=><button key={t.k} className={`tab ${profileTab===t.k?"tab-a":""}`} onClick={()=>setProfileTab(t.k)}>{t.l}{t.c!==undefined?` (${t.c})`:""}</button>)}
 </div>
 
 {/* Tab: Pesanan */}
@@ -439,6 +575,16 @@ export default function App(){
 
 {/* Tab: Investasi */}
 {profileTab==="invest"&&<div>{myInvestments.length===0?<div style={{textAlign:"center",padding:48,color:"#ccc"}}>Belum ada investasi. Jelajahi peluang di modul Investasi.</div>:<>{(()=>{const tot=myInvestments.reduce((a,i)=>a+i.amount,0);return<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10,marginBottom:16}}><div className="card" style={{padding:14,textAlign:"center"}}><div style={{fontFamily:"'DM Serif Display'",fontSize:20,color:C.royal}}>Rp {tot} Jt</div><div style={{fontSize:10,color:"#aaa"}}>Total Investasi</div></div><div className="card" style={{padding:14,textAlign:"center"}}><div style={{fontFamily:"'DM Serif Display'",fontSize:20,color:C.emerald}}>{myInvestments.filter(i=>i.status==="active").length}</div><div style={{fontSize:10,color:"#aaa"}}>Aktif</div></div><div className="card" style={{padding:14,textAlign:"center"}}><div style={{fontFamily:"'DM Serif Display'",fontSize:20,color:C.gold}}>{myInvestments.length}</div><div style={{fontSize:10,color:"#aaa"}}>Total</div></div></div>})()}{myInvestments.map(inv=><div key={inv.id} className="card" style={{padding:20,marginBottom:10}}><div style={{display:"flex",justifyContent:"space-between"}}><h4 style={{fontFamily:"'Outfit'",fontWeight:800}}>{inv.company?.name||"Perusahaan"}</h4><span className="tag" style={{background:inv.status==="active"?"#E8F5E9":"#f5f3ef",color:inv.status==="active"?"#2E7D32":"#999"}}>{inv.status}</span></div><div style={{fontSize:12,color:"#aaa",marginTop:4}}>{inv.company?.sector} · Rp {inv.amount} Jt · Return: {inv.company?.return_rate||"-"}</div></div>)}</>}</div>}
+
+{/* Tab: Acara */}
+{profileTab==="acara-profile"&&<div>
+{myRegistrations.length===0?<div style={{textAlign:"center",padding:48,color:"#ccc"}}>Belum mendaftar acara. Lihat kalender di modul Acara & Berita.</div>
+:myRegistrations.map(r=><div key={r.id} className="card" style={{padding:18,marginBottom:10}}>
+<div style={{display:"flex",justifyContent:"space-between"}}><h4 style={{fontFamily:"'Outfit'",fontWeight:800,fontSize:15}}>{r.event?.title||"Acara"}</h4><span className="tag" style={{background:r.status==="attended"?"#E8F5E9":r.status==="cancelled"?"#FFEBEE":"#FFF8E1",color:r.status==="attended"?"#2E7D32":r.status==="cancelled"?"#C62828":"#F9A825"}}>{r.status==="attended"?"Hadir":r.status==="cancelled"?"Batal":"Terdaftar"}</span></div>
+<div style={{fontSize:12,color:"#aaa",marginTop:4}}>📅 {r.event?.event_date?new Date(r.event.event_date).toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"}):"-"} · 📍 {r.event?.location||r.event?.city||"-"}</div>
+<div style={{marginTop:6}}><span style={{fontSize:11,color:C.primary,cursor:"pointer",fontWeight:700}} onClick={()=>nav("acara",r.event_id)}>Lihat Detail →</span></div>
+</div>)}
+</div>}
 
 {/* Tab: Hibah */}
 {profileTab==="hibah"&&<div>
@@ -525,7 +671,7 @@ export default function App(){
 {[{l:"Produk",v:myProducts.length,ic:"📦",cl:C.gold},{l:"Pesanan Masuk",v:productOrders2.length,ic:"🛒",cl:C.primary},{l:"Lowongan",v:myJobs2.length,ic:"💼",cl:C.emerald},{l:"Pelamar",v:jobApplicants.length,ic:"📨",cl:C.emerald},{l:"Kursus",v:myCourses2.length,ic:"📚",cl:C.primary},{l:"Hibah",v:myHibah2.length,ic:"🎁",cl:C.copper}].map((s,i)=><div key={i} className="card" style={{padding:"10px 12px",textAlign:"center"}}><div style={{fontSize:14}}>{s.ic}</div><div style={{fontFamily:"'DM Serif Display'",fontSize:20,color:s.cl}}>{s.v}</div><div style={{fontSize:9,color:"#bbb"}}>{s.l}</div></div>)}
 </div>
 <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:20}}>
-{[{k:"produk",l:"🛒 Produk",c:myProducts.length},{k:"loker",l:"💼 Lowongan",c:myJobs2.length},{k:"kursus",l:"📚 Kursus",c:myCourses2.length},{k:"hibah",l:"🎁 Hibah",c:myHibah2.length},{k:"investasi",l:"📈 Perusahaan",c:myCompanies2.length},{k:"bmtkelola",l:"🏦 BMT",c:bmtAppsForMe.length}].map(t=><button key={t.k} className={`tab ${kelolaTab===t.k?"tab-a":""}`} onClick={()=>setKelolaTab(t.k)}>{t.l} ({t.c})</button>)}
+{[{k:"produk",l:"🛒 Produk",c:myProducts.length},{k:"loker",l:"💼 Lowongan",c:myJobs2.length},{k:"kursus",l:"📚 Kursus",c:myCourses2.length},{k:"hibah",l:"🎁 Hibah",c:myHibah2.length},{k:"investasi",l:"📈 Perusahaan",c:myCompanies2.length},{k:"bmtkelola",l:"🏦 BMT",c:bmtAppsForMe.length},{k:"acarakelola",l:"📅 Acara",c:myEvents2.length}].map(t=><button key={t.k} className={`tab ${kelolaTab===t.k?"tab-a":""}`} onClick={()=>setKelolaTab(t.k)}>{t.l} ({t.c})</button>)}
 </div>
 
 {/* PRODUK SAYA + Pesanan Masuk */}
@@ -603,6 +749,22 @@ export default function App(){
 <div style={{fontSize:12,color:"#aaa"}}>Tenor: {a.tenor} bln · Cicilan: Rp {a.monthly_payment?.toFixed(1)} Jt/bln</div>
 {a.purpose&&<div style={{fontSize:12,color:"#777",fontStyle:"italic",marginTop:4}}>Tujuan: {a.purpose}</div>}
 <div style={{display:"flex",gap:8,marginTop:8}}>{a.status==="pending"&&<><button className="btn bp bs" style={{flex:1}} onClick={()=>handleBmtAction(a.id,'approve')}>✅ Setujui</button><button className="btn bo bs" style={{flex:1}} onClick={()=>handleBmtAction(a.id,'reject')}>❌ Tolak</button></>}<span style={{color:C.primary,cursor:"pointer",fontWeight:700,fontSize:11,padding:"6px 8px"}} onClick={()=>{openChat(a.applicant_id,a.applicant?.full_name);setShowChatList(true)}}>💬 Chat</span></div>
+</div>)}
+</div>}
+
+{/* ACARA KELOLA */}
+{kelolaTab==="acarakelola"&&<div>
+<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}><h3 className="hmd">Acara Saya</h3><button className="btn bp bs" onClick={()=>setShowEventForm(true)}>➕ Buat Acara</button></div>
+{myEvents2.length===0?<div style={{textAlign:"center",padding:40,color:"#ccc"}}>Belum ada acara.</div>:myEvents2.map(e=><div key={e.id} className="card" style={{padding:18,marginBottom:10}}>
+<div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}>
+<div><h4 style={{fontFamily:"'Outfit'",fontWeight:800,fontSize:15}}>{e.title}</h4><div style={{fontSize:12,color:"#aaa"}}>{e.category} · 📅 {new Date(e.event_date).toLocaleDateString("id-ID")} · 📍 {e.city}</div><div style={{fontSize:10,color:"#ccc"}}>{e.status}</div></div>
+<div style={{display:"flex",gap:6}}>
+<select className="sel" style={{width:"auto",padding:"4px 8px",fontSize:11,marginBottom:0,minWidth:90}} value={e.status} onChange={async(ev)=>{await getSupabase()?.from('events').update({status:ev.target.value}).eq('id',e.id);showT("Status diupdate");fetchMyEvents();fetchEvents();}}>
+<option value="upcoming">Akan Datang</option><option value="ongoing">Berlangsung</option><option value="completed">Selesai</option><option value="cancelled">Dibatalkan</option>
+</select>
+<button className="btn" style={{background:"#FFEBEE",color:"#C62828",padding:"4px 10px",fontSize:11,borderRadius:8}} onClick={()=>handleDelete('events',e.id,e.title)}>🗑️</button>
+</div></div>
+{(()=>{const regs=eventRegs.filter(r=>r.event_id===e.id);return regs.length>0&&<div style={{marginTop:12,borderTop:"1px solid #f0ece6",paddingTop:10}}><div style={{fontSize:12,fontWeight:700,color:C.primary,marginBottom:6}}>🎟️ {regs.length} Peserta Terdaftar:</div>{regs.map((r,i)=><div key={i} style={{fontSize:12,padding:"6px 10px",background:"#faf8f5",borderRadius:8,marginBottom:4,display:"flex",justifyContent:"space-between",alignItems:"center"}}><span>👤 {r.user?.full_name} · 📞 {r.user?.phone||"-"} · 📍 {r.user?.city||"-"}</span><div style={{display:"flex",gap:4,alignItems:"center"}}><span className="tag" style={{background:r.status==="attended"?"#E8F5E9":"#FFF8E1",color:r.status==="attended"?"#2E7D32":"#F9A825",fontSize:9}}>{r.status}</span>{r.status==="registered"&&<button className="btn bs" style={{background:C.emerald,color:"white",padding:"2px 8px",fontSize:10}} onClick={async()=>{await getSupabase()?.from('event_registrations').update({status:'attended'}).eq('id',r.id);showT("✅ Hadir!");fetchMyEvents();}}>✓ Hadir</button>}<span style={{color:C.primary,cursor:"pointer",fontSize:10,fontWeight:700}} onClick={()=>{openChat(r.user_id,r.user?.full_name);setShowChatList(true)}}>💬</span></div></div>)}</div>})()}
 </div>)}
 </div>}
 
