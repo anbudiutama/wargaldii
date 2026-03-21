@@ -211,9 +211,10 @@ export default function App(){
   useEffect(()=>{if(page==="dashboard")fetchDashStats();},[page]);
 
   // Hash Routing — URL berubah sesuai halaman
-  const nav=(p,s=null)=>{setPage(p);setSub(s);setNotif(false);setCartOpen(false);setMobileMenu(false);setQuizStarted(false);setQuizDone(false);setQuizAnswers({});setActiveLesson(0);setAuthError("");setAuthSuccess("");window.scrollTo({top:0,behavior:"smooth"});const hash=s?`${p}-${s}`:p==="home"?"":p;window.history.replaceState(null,null,hash?`#${hash}`:`${window.location.pathname}`);};
+  const _navLock={v:false};
+  const nav=(p,s=null)=>{setPage(p);setSub(s);setNotif(false);setCartOpen(false);setMobileMenu(false);setQuizStarted(false);setQuizDone(false);setQuizAnswers({});setActiveLesson(0);setAuthError("");setAuthSuccess("");window.scrollTo({top:0,behavior:"smooth"});_navLock.v=true;const hash=s?`${p}-${s}`:p==="home"?"":p;if(hash)window.location.hash=hash;else if(window.location.hash)history.replaceState(null,"",window.location.pathname);setTimeout(()=>{_navLock.v=false;},100);};
   // Read hash on first load + back/forward button
-  useEffect(()=>{const readHash=()=>{const h=window.location.hash.replace('#','');if(!h){setPage("home");return;}const parts=h.split('-');const pg=parts[0];const sid=parts.slice(1).join('-')||null;if(['marketplace','elearning','hibah','investasi','loker','bmt','dashboard','profile','kelola','admin','checkout','order-success'].includes(pg)){setPage(pg);setSub(sid||null);}};readHash();window.addEventListener('hashchange',readHash);return()=>window.removeEventListener('hashchange',readHash);},[]);
+  useEffect(()=>{const readHash=()=>{if(_navLock.v)return;const h=window.location.hash.replace('#','');if(!h){setPage("home");return;}const dash=h.indexOf('-');const pg=dash>0?h.substring(0,dash):h;const sid=dash>0?h.substring(dash+1):null;if(['marketplace','elearning','hibah','investasi','loker','bmt','dashboard','profile','kelola','admin','checkout'].includes(pg)){setPage(pg);setSub(sid||null);}};readHash();window.addEventListener('hashchange',readHash);return()=>window.removeEventListener('hashchange',readHash);},[]);
 
   // WhatsApp Share helper
   const shareWA=(text)=>{window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);};
