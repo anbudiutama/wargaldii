@@ -32,6 +32,7 @@ export default function App(){
   const [newsForm,setNewsForm]=useState({event_id:"",title:"",content:"",image_url:""});
   const [myEvents2,setMyEvents2]=useState([]),[eventRegs,setEventRegs]=useState([]);
   const [profileTab,setProfileTab]=useState("overview"),[dirType,setDirType]=useState("Semua"),[adminTab,setAdminTab]=useState("overview"),[adminStats,setAdminStats]=useState(null),[adminUsers,setAdminUsers]=useState([]);
+  const [adminProducts,setAdminProducts]=useState([]),[adminJobs,setAdminJobs]=useState([]),[adminEvents,setAdminEvents]=useState([]),[adminCourses,setAdminCourses]=useState([]),[adminHibah,setAdminHibah]=useState([]),[adminUserFilter,setAdminUserFilter]=useState("semua");
   // Kelola Konten Saya
   const [kelolaTab,setKelolaTab]=useState("produk");
   const [myProducts,setMyProducts]=useState([]),[myJobs2,setMyJobs2]=useState([]),[myCourses2,setMyCourses2]=useState([]),[myHibah2,setMyHibah2]=useState([]),[myCompanies2,setMyCompanies2]=useState([]);
@@ -94,7 +95,9 @@ export default function App(){
   async function fetchMyRegs(){if(!user)return;const r=await getSupabase()?.from('event_registrations').select('*,event:events(title,event_date,city,location)').eq('user_id',user.id);if(r?.data)setMyRegistrations(r.data);}
   async function fetchMyEvents(){if(!user)return;const r=await getSupabase()?.from('events').select('*').eq('organizer_id',user.id).order('created_at',{ascending:false});setMyEvents2(r?.data||[]);const eids=(r?.data||[]).map(e=>e.id);if(eids.length){const r2=await getSupabase()?.from('event_registrations').select('*,user:profiles!user_id(full_name,phone,city)').in('event_id',eids).order('created_at',{ascending:false});setEventRegs(r2?.data||[]);}}
   async function fetchDashStats(){const sb=getSupabase();if(!sb)return;const[rU,rO,rP,rC,rJ,rH,rI,rB,rCert]=await Promise.all([sb.from('profiles').select('*',{count:'exact',head:true}),sb.from('orders').select('*',{count:'exact',head:true}),sb.from('products').select('*',{count:'exact',head:true}),sb.from('courses').select('*',{count:'exact',head:true}),sb.from('jobs').select('*',{count:'exact',head:true}),sb.from('hibah_items').select('*',{count:'exact',head:true}),sb.from('investments').select('amount').not('amount','is',null),sb.from('bmt_applications').select('amount,status'),sb.from('certificates').select('*',{count:'exact',head:true})]);const totalInv=(rI?.data||[]).reduce((a,i)=>a+(i.amount||0),0);const totalBmt=(rB?.data||[]).reduce((a,b)=>a+(b.amount||0),0);const activeBmt=(rB?.data||[]).filter(b=>b.status==='active').length;setDashStats({users:rU?.count||0,orders:rO?.count||0,products:rP?.count||0,courses:rC?.count||0,jobs:rJ?.count||0,hibah:rH?.count||0,totalInvestments:totalInv,investCount:(rI?.data||[]).length,totalBmt,activeBmt,bmtCount:(rB?.data||[]).length,certs:rCert?.count||0});}
-  async function fetchAS(){const sb=getSupabase();if(!sb)return;const[r1,r2,r3,r4,r5,r6,r7,r8]=await Promise.all([sb.from('profiles').select('*').order('created_at',{ascending:false}).limit(50),sb.from('orders').select('*',{count:'exact',head:true}),sb.from('bmt_applications').select('*,applicant:profiles!applicant_id(full_name,phone,city),bmt:bmt_institutions(name)').eq('status','pending'),sb.from('products').select('*',{count:'exact',head:true}),sb.from('jobs').select('*',{count:'exact',head:true}),sb.from('courses').select('*',{count:'exact',head:true}),sb.from('investments').select('amount'),sb.from('bmt_applications').select('*',{count:'exact',head:true})]);setAdminStats({users:r1?.data?.length||0,orders:r2?.count||0,pendingBmt:r3?.data||[],products:r4?.count||0,jobs:r5?.count||0,courses:r6?.count||0,totalInvested:(r7?.data||[]).reduce((a,i)=>a+(i.amount||0),0),bmtTotal:r8?.count||0});setAdminUsers(r1?.data||[]);}
+  async function fetchAS(){const sb=getSupabase();if(!sb)return;const[r1,r2,r3,r4,r5,r6,r7,r8]=await Promise.all([sb.from('profiles').select('*').order('created_at',{ascending:false}).limit(200),sb.from('orders').select('*',{count:'exact',head:true}),sb.from('bmt_applications').select('*,applicant:profiles!applicant_id(full_name,phone,city),bmt:bmt_institutions(name)').eq('status','pending'),sb.from('products').select('*',{count:'exact',head:true}),sb.from('jobs').select('*',{count:'exact',head:true}),sb.from('courses').select('*',{count:'exact',head:true}),sb.from('investments').select('amount'),sb.from('bmt_applications').select('*',{count:'exact',head:true})]);setAdminStats({users:r1?.data?.length||0,orders:r2?.count||0,pendingBmt:r3?.data||[],products:r4?.count||0,jobs:r5?.count||0,courses:r6?.count||0,totalInvested:(r7?.data||[]).reduce((a,i)=>a+(i.amount||0),0),bmtTotal:r8?.count||0});setAdminUsers(r1?.data||[]);
+  // Fetch all content for moderation
+  const[rP,rJ,rE,rC2,rH]=await Promise.all([sb.from('products').select('*,seller:profiles!seller_id(full_name,phone)').order('created_at',{ascending:false}).limit(100),sb.from('jobs').select('*,company:profiles!company_id(full_name,phone)').order('created_at',{ascending:false}).limit(100),sb.from('events').select('*,organizer:profiles!organizer_id(full_name)').order('created_at',{ascending:false}).limit(100),sb.from('courses').select('*,instructor:profiles!instructor_id(full_name)').order('created_at',{ascending:false}).limit(100),sb.from('hibah_items').select('*,donor:profiles!donor_id(full_name)').order('created_at',{ascending:false}).limit(100)]);setAdminProducts(rP?.data||[]);setAdminJobs(rJ?.data||[]);setAdminEvents(rE?.data||[]);setAdminCourses(rC2?.data||[]);setAdminHibah(rH?.data||[]);}
 
   // Direktori: gabungkan perusahaan investasi + seller yang punya produk dari DB
   async function fetchDir(){
@@ -663,20 +666,102 @@ export default function App(){
 {/* ADMIN */}
 {page==="admin"&&<div style={{maxWidth:1280,margin:"0 auto",padding:"28px 24px 64px"}}><button className="back" onClick={()=>nav("home")}>← Beranda</button><h1 className="hlg" style={{marginBottom:20}}>⚙️ Admin Panel</h1>{profile?.role!=="admin"?<div className="err">Anda tidak memiliki akses admin.</div>:<>
 <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:20}}>
-{[{k:"overview",l:"📊 Overview"},{k:"users",l:"👥 Users ("+adminUsers.length+")"},{k:"bmt",l:"🏦 BMT Pending ("+(adminStats?.pendingBmt?.length||0)+")"}].map(t=><button key={t.k} className={`tab ${adminTab===t.k?"tab-a":""}`} onClick={()=>setAdminTab(t.k)}>{t.l}</button>)}
+{[{k:"overview",l:"📊 Overview"},{k:"users",l:"👥 Users ("+adminUsers.length+")"},{k:"konten",l:"📋 Konten"},{k:"bmt",l:"🏦 BMT ("+(adminStats?.pendingBmt?.length||0)+")"}].map(t=><button key={t.k} className={`tab ${adminTab===t.k?"tab-a":""}`} onClick={()=>setAdminTab(t.k)}>{t.l}</button>)}
 </div>
-{adminTab==="overview"&&adminStats&&<><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12,marginBottom:20}}>
-{[{l:"Users",v:adminStats.users,ic:"👥",cl:C.primary},{l:"Orders",v:adminStats.orders,ic:"🛒",cl:C.gold},{l:"Produk",v:adminStats.products,ic:"📦",cl:C.emerald},{l:"Kursus",v:adminStats.courses,ic:"📚",cl:C.primary},{l:"Lowongan",v:adminStats.jobs,ic:"💼",cl:C.royal},{l:"BMT Total",v:adminStats.bmtTotal,ic:"🏦",cl:C.plum},{l:"Investasi",v:"Rp "+adminStats.totalInvested+" Jt",ic:"📈",cl:C.royal},{l:"BMT Pending",v:adminStats.pendingBmt?.length||0,ic:"⏳",cl:C.copper}].map((k,i)=><div key={i} className="card" style={{padding:"14px 16px",textAlign:"center"}}><div style={{fontSize:18,marginBottom:4}}>{k.ic}</div><div style={{fontFamily:"'DM Serif Display'",fontSize:22,color:k.cl}}>{k.v}</div><div style={{fontSize:10,color:"#bbb"}}>{k.l}</div></div>)}
+
+{/* ═══ OVERVIEW ═══ */}
+{adminTab==="overview"&&adminStats&&<>
+{/* KPI Cards */}
+<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:10,marginBottom:20}}>
+{[{l:"Total Users",v:adminStats.users,ic:"👥",cl:C.primary},{l:"Pesanan",v:adminStats.orders,ic:"🛒",cl:C.gold},{l:"Produk",v:adminStats.products,ic:"📦",cl:C.emerald},{l:"Kursus",v:adminStats.courses,ic:"📚",cl:C.primary},{l:"Lowongan",v:adminStats.jobs,ic:"💼",cl:C.royal},{l:"BMT Pending",v:adminStats.pendingBmt?.length||0,ic:"⏳",cl:C.copper},{l:"Investasi",v:"Rp "+adminStats.totalInvested+" Jt",ic:"📈",cl:C.royal},{l:"BMT Total",v:adminStats.bmtTotal,ic:"🏦",cl:C.plum}].map((k,i)=><div key={i} className="card" style={{padding:"12px 14px",textAlign:"center"}}><div style={{fontSize:16,marginBottom:2}}>{k.ic}</div><div style={{fontFamily:"'DM Serif Display'",fontSize:20,color:k.cl}}>{k.v}</div><div style={{fontSize:9,color:"#bbb"}}>{k.l}</div></div>)}
 </div>
-<div className="card" style={{padding:20}}><h3 className="hmd" style={{marginBottom:10}}>User Terbaru</h3>{adminUsers.slice(0,5).map(u=><div key={u.id} style={{padding:"8px 0",borderBottom:"1px solid #f5f3ef",display:"flex",justifyContent:"space-between",fontSize:13}}><span>{u.full_name||"?"} · {u.email}</span><span className="tag" style={{background:`${C.primary}10`,color:C.primary}}>{u.role}</span></div>)}</div>
+
+{/* User Baru Hari Ini */}
+{(()=>{const today=new Date().toISOString().slice(0,10);const newToday=adminUsers.filter(u=>u.created_at?.slice(0,10)===today);const week=new Date(Date.now()-7*86400000).toISOString().slice(0,10);const newWeek=adminUsers.filter(u=>u.created_at?.slice(0,10)>=week);return<div className="card" style={{padding:20,marginBottom:14}}>
+<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}><h3 className="hmd">👤 User Baru</h3><div style={{display:"flex",gap:10}}><span className="tag" style={{background:`${C.primary}10`,color:C.primary}}>Hari ini: {newToday.length}</span><span className="tag" style={{background:`${C.gold}10`,color:C.gold}}>7 hari: {newWeek.length}</span></div></div>
+{newToday.length===0?<div style={{fontSize:13,color:"#ccc"}}>Belum ada user baru hari ini.</div>:newToday.map(u=><div key={u.id} style={{padding:"8px 0",borderBottom:"1px solid #f5f3ef",display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:13}}>
+<div><b>{u.full_name||"?"}</b> · {u.email} · 📍 {u.city||"-"}</div>
+<div style={{display:"flex",gap:6,alignItems:"center"}}><span className="tag" style={{background:`${C.emerald}10`,color:C.emerald,fontSize:10}}>{u.role?.replace(/_/g," ")}</span><span style={{color:C.primary,cursor:"pointer",fontWeight:700,fontSize:11}} onClick={()=>{openChat(u.id,u.full_name);setShowChatList(true)}}>💬</span></div>
+</div>)}
+</div>})()}
+
+{/* Konten Terbaru */}
+<div className="card" style={{padding:20,marginBottom:14}}>
+<h3 className="hmd" style={{marginBottom:10}}>📋 Konten Terbaru (24 jam)</h3>
+{(()=>{const cutoff=new Date(Date.now()-86400000).toISOString();const recent=[...adminProducts.filter(p=>p.created_at>cutoff).map(p=>({...p,_type:"produk",_icon:"📦",_by:p.seller?.full_name})),...adminJobs.filter(j=>j.created_at>cutoff).map(j=>({...j,_type:"lowongan",_icon:"💼",_by:j.company?.full_name})),...adminEvents.filter(e=>e.created_at>cutoff).map(e=>({...e,_type:"acara",_icon:"📅",_by:e.organizer?.full_name})),...adminCourses.filter(c=>c.created_at>cutoff).map(c=>({...c,_type:"kursus",_icon:"📚",_by:c.instructor?.full_name})),...adminHibah.filter(h=>h.created_at>cutoff).map(h=>({...h,_type:"hibah",_icon:"🎁",_by:h.donor?.full_name}))].sort((a,b)=>b.created_at.localeCompare(a.created_at));return recent.length===0?<div style={{fontSize:13,color:"#ccc"}}>Tidak ada konten baru 24 jam terakhir.</div>:recent.map((r,i)=><div key={i} style={{padding:"8px 0",borderBottom:"1px solid #f5f3ef",display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:13}}>
+<div><span>{r._icon}</span> <b>{r.title||r.name}</b> <span style={{color:"#aaa"}}>· {r._type} oleh {r._by}</span></div>
+<div style={{display:"flex",gap:6,alignItems:"center"}}><span style={{fontSize:10,color:"#ccc"}}>{new Date(r.created_at).toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"})}</span><button className="btn" style={{background:"#FFEBEE",color:"#C62828",padding:"2px 8px",fontSize:10,borderRadius:6}} onClick={async()=>{const tbl=r._type==="produk"?"products":r._type==="lowongan"?"jobs":r._type==="acara"?"events":r._type==="kursus"?"courses":"hibah_items";await getSupabase()?.from(tbl).delete().eq('id',r.id);showT("🗑️ Dihapus");fetchAS();}}>🗑️</button></div>
+</div>)})()}
+</div>
+
+{/* Quick Actions */}
+<div className="card" style={{padding:20}}>
+<h3 className="hmd" style={{marginBottom:10}}>⚡ Quick Actions</h3>
+<div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+<button className="btn bp bs" onClick={()=>{setAdminTab("users");setAdminUserFilter("baru")}}>👤 Lihat User Baru</button>
+<button className="btn bo bs" onClick={()=>setAdminTab("konten")}>📋 Moderasi Konten</button>
+<button className="btn bo bs" onClick={()=>setAdminTab("bmt")}>🏦 BMT Pending</button>
+<button className="btn bo bs" onClick={()=>nav("dashboard")}>📊 Dashboard</button>
+</div></div>
 </>}
-{adminTab==="users"&&<div>{adminUsers.map(u=><div key={u.id} className="card" style={{padding:16,marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontWeight:700,fontSize:14}}>{u.full_name||"?"}</div><div style={{fontSize:12,color:"#aaa"}}>{u.email} · 📍 {u.city||"-"} · 🕌 {u.cabang_ldii||"-"}</div><div style={{fontSize:11,color:"#ccc"}}>{u.created_at?new Date(u.created_at).toLocaleDateString("id-ID"):""}</div></div><span className="tag" style={{background:`${C.emerald}10`,color:C.emerald,textTransform:"capitalize"}}>{u.role?.replace(/_/g," ")}</span></div>)}</div>}
+
+{/* ═══ USERS ═══ */}
+{adminTab==="users"&&<div>
+<div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:14}}>
+{[{k:"semua",l:"Semua ("+adminUsers.length+")"},{k:"baru",l:"Baru 7 hari"},{k:"seller",l:"Seller"},{k:"bmt",l:"BMT"},{k:"pengajar",l:"Pengajar"},{k:"admin",l:"Admin"}].map(f=><button key={f.k} className={`tab ${adminUserFilter===f.k?"tab-a":""}`} onClick={()=>setAdminUserFilter(f.k)}>{f.l}</button>)}
+</div>
+{(()=>{const week=new Date(Date.now()-7*86400000).toISOString().slice(0,10);const filtered=adminUsers.filter(u=>{if(adminUserFilter==="baru")return u.created_at?.slice(0,10)>=week;if(adminUserFilter==="seller")return u.role==="seller"||u.role==="produsen";if(adminUserFilter==="bmt")return u.role==="bmt";if(adminUserFilter==="pengajar")return u.role==="pengajar";if(adminUserFilter==="admin")return u.role==="admin";return true;});return<div>
+<div style={{fontSize:12,color:"#aaa",marginBottom:10}}>{filtered.length} user ditampilkan</div>
+{filtered.map(u=><div key={u.id} className="card" style={{padding:14,marginBottom:8}}>
+<div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+<div style={{flex:1}}>
+<div style={{fontWeight:700,fontSize:14}}>{u.full_name||"?"}</div>
+<div style={{fontSize:12,color:"#aaa"}}>{u.email} · 📞 {u.phone||"-"} · 📍 {u.city||"-"} · 🕌 {u.cabang_ldii||"-"}</div>
+<div style={{fontSize:11,color:"#ccc"}}>Daftar: {u.created_at?new Date(u.created_at).toLocaleDateString("id-ID",{day:"numeric",month:"short",year:"numeric"}):"-"}</div>
+</div>
+<div style={{display:"flex",gap:6,alignItems:"center"}}>
+<span className="tag" style={{background:`${C.emerald}10`,color:C.emerald,textTransform:"capitalize"}}>{u.role?.replace(/_/g," ")}</span>
+<span style={{color:C.primary,cursor:"pointer",fontWeight:700,fontSize:12}} onClick={()=>{openChat(u.id,u.full_name);setShowChatList(true)}} title="Chat user">💬</span>
+{u.role!=="admin"&&<button className="btn" style={{background:`${C.primary}10`,color:C.primary,padding:"2px 8px",fontSize:10,borderRadius:6}} onClick={async()=>{await getSupabase()?.from('profiles').update({role:'admin'}).eq('id',u.id);showT("✅ Dijadikan admin");fetchAS();}}>→ Admin</button>}
+</div></div>
+</div>)}
+</div>})()}
+</div>}
+
+{/* ═══ KONTEN (MODERASI) ═══ */}
+{adminTab==="konten"&&<div>
+<div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:14}}>
+{[{k:"produk",l:"📦 Produk ("+adminProducts.length+")"},{k:"lowongan",l:"💼 Lowongan ("+adminJobs.length+")"},{k:"kursus",l:"📚 Kursus ("+adminCourses.length+")"},{k:"acara",l:"📅 Acara ("+adminEvents.length+")"},{k:"hibah",l:"🎁 Hibah ("+adminHibah.length+")"}].map(f=><button key={f.k} className={`tab ${adminUserFilter===f.k?"tab-a":""}`} onClick={()=>setAdminUserFilter(f.k)}>{f.l}</button>)}
+</div>
+{adminUserFilter==="produk"&&<div>{adminProducts.length===0?<div style={{textAlign:"center",padding:40,color:"#ccc"}}>Belum ada produk.</div>:adminProducts.map(p=><div key={p.id} className="card" style={{padding:14,marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+<div style={{display:"flex",gap:10,flex:1}}>{p.image_url&&<img src={p.image_url} alt="" style={{width:40,height:40,borderRadius:8,objectFit:"cover"}}/>}<div><div style={{fontWeight:700,fontSize:13}}>{p.name} — {fmt(p.price)}</div><div style={{fontSize:11,color:"#aaa"}}>{p.category} · Stok: {p.stock} · 🏪 {p.seller?.full_name} · {p.created_at?new Date(p.created_at).toLocaleDateString("id-ID"):""}</div></div></div>
+<div style={{display:"flex",gap:4}}><span style={{color:C.primary,cursor:"pointer",fontSize:11,fontWeight:700}} onClick={()=>{openChat(p.seller_id,p.seller?.full_name);setShowChatList(true)}}>💬</span><button className="btn" style={{background:"#FFEBEE",color:"#C62828",padding:"2px 8px",fontSize:10,borderRadius:6}} onClick={async()=>{await getSupabase()?.from('products').delete().eq('id',p.id);showT("🗑️ Produk dihapus");fetchAS();}}>🗑️</button></div>
+</div>)}</div>}
+{adminUserFilter==="lowongan"&&<div>{adminJobs.length===0?<div style={{textAlign:"center",padding:40,color:"#ccc"}}>Belum ada lowongan.</div>:adminJobs.map(j=><div key={j.id} className="card" style={{padding:14,marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+<div><div style={{fontWeight:700,fontSize:13}}>{j.company_name&&(j.company_name+" — ")}{j.title}</div><div style={{fontSize:11,color:"#aaa"}}>{j.type} · {j.city} · {j.salary} · 👤 {j.company?.full_name} · {j.created_at?new Date(j.created_at).toLocaleDateString("id-ID"):""}</div></div>
+<div style={{display:"flex",gap:4}}><span style={{color:C.primary,cursor:"pointer",fontSize:11,fontWeight:700}} onClick={()=>{openChat(j.company_id,j.company?.full_name);setShowChatList(true)}}>💬</span><button className="btn" style={{background:"#FFEBEE",color:"#C62828",padding:"2px 8px",fontSize:10,borderRadius:6}} onClick={async()=>{await getSupabase()?.from('jobs').delete().eq('id',j.id);showT("🗑️ Lowongan dihapus");fetchAS();}}>🗑️</button></div>
+</div>)}</div>}
+{adminUserFilter==="kursus"&&<div>{adminCourses.length===0?<div style={{textAlign:"center",padding:40,color:"#ccc"}}>Belum ada kursus.</div>:adminCourses.map(c=><div key={c.id} className="card" style={{padding:14,marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+<div><div style={{fontWeight:700,fontSize:13}}>{c.title}</div><div style={{fontSize:11,color:"#aaa"}}>{c.level} · 👨‍🏫 {c.instructor?.full_name} · {c.created_at?new Date(c.created_at).toLocaleDateString("id-ID"):""}</div></div>
+<div style={{display:"flex",gap:4}}><span style={{color:C.primary,cursor:"pointer",fontSize:11,fontWeight:700}} onClick={()=>{openChat(c.instructor_id,c.instructor?.full_name);setShowChatList(true)}}>💬</span><button className="btn" style={{background:"#FFEBEE",color:"#C62828",padding:"2px 8px",fontSize:10,borderRadius:6}} onClick={async()=>{await getSupabase()?.from('courses').delete().eq('id',c.id);showT("🗑️ Kursus dihapus");fetchAS();}}>🗑️</button></div>
+</div>)}</div>}
+{adminUserFilter==="acara"&&<div>{adminEvents.length===0?<div style={{textAlign:"center",padding:40,color:"#ccc"}}>Belum ada acara.</div>:adminEvents.map(e=><div key={e.id} className="card" style={{padding:14,marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+<div><div style={{fontWeight:700,fontSize:13}}>{e.title}</div><div style={{fontSize:11,color:"#aaa"}}>{e.category} · 📅 {e.event_date?new Date(e.event_date).toLocaleDateString("id-ID"):""} · 📍 {e.city} · 👤 {e.organizer?.full_name}</div></div>
+<div style={{display:"flex",gap:4}}><span className="tag" style={{background:e.status==="upcoming"?"#E8F5E9":e.status==="cancelled"?"#FFEBEE":"#f5f3ef",color:e.status==="upcoming"?"#2E7D32":e.status==="cancelled"?"#C62828":"#999",fontSize:9}}>{e.status}</span><span style={{color:C.primary,cursor:"pointer",fontSize:11,fontWeight:700}} onClick={()=>{openChat(e.organizer_id,e.organizer?.full_name);setShowChatList(true)}}>💬</span><button className="btn" style={{background:"#FFEBEE",color:"#C62828",padding:"2px 8px",fontSize:10,borderRadius:6}} onClick={async()=>{await getSupabase()?.from('events').delete().eq('id',e.id);showT("🗑️ Acara dihapus");fetchAS();}}>🗑️</button></div>
+</div>)}</div>}
+{adminUserFilter==="hibah"&&<div>{adminHibah.length===0?<div style={{textAlign:"center",padding:40,color:"#ccc"}}>Belum ada hibah.</div>:adminHibah.map(h=><div key={h.id} className="card" style={{padding:14,marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+<div style={{display:"flex",gap:10,flex:1}}>{h.image_url&&<img src={h.image_url} alt="" style={{width:40,height:40,borderRadius:8,objectFit:"cover"}}/>}<div><div style={{fontWeight:700,fontSize:13}}>{h.name}</div><div style={{fontSize:11,color:"#aaa"}}>{h.condition} · {h.city} · 🤲 {h.donor?.full_name} · {h.created_at?new Date(h.created_at).toLocaleDateString("id-ID"):""}</div></div></div>
+<div style={{display:"flex",gap:4}}><span className="tag" style={{background:h.status==="available"?"#E8F5E9":"#FFF3E0",color:h.status==="available"?"#2E7D32":"#E65100",fontSize:9}}>{h.status}</span><button className="btn" style={{background:"#FFEBEE",color:"#C62828",padding:"2px 8px",fontSize:10,borderRadius:6}} onClick={async()=>{await getSupabase()?.from('hibah_items').delete().eq('id',h.id);showT("🗑️ Hibah dihapus");fetchAS();}}>🗑️</button></div>
+</div>)}</div>}
+</div>}
+
+{/* ═══ BMT PENDING ═══ */}
 {adminTab==="bmt"&&<div>{(adminStats?.pendingBmt||[]).length===0?<div style={{textAlign:"center",padding:48,color:"#ccc"}}>Tidak ada pengajuan BMT pending</div>:(adminStats.pendingBmt||[]).map(b=><div key={b.id} className="card" style={{padding:20,marginBottom:12}}>
 <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><h4 style={{fontFamily:"'Outfit'",fontWeight:800}}>Rp {b.amount} Jt · {b.type}</h4><span className="tag" style={{background:"#FFF8E1",color:"#F9A825"}}>Pending</span></div>
 <div style={{fontSize:12,color:"#aaa",marginBottom:4}}>Tenor: {b.tenor} bln · Tujuan: {b.purpose||"-"}</div>
 <div style={{fontSize:12,color:"#777",marginBottom:4}}>Pengaju: {b.applicant?.full_name||"?"} · 📞 {b.applicant?.phone||"-"} · 📍 {b.applicant?.city||"-"}</div>
 {b.bmt&&<div style={{fontSize:12,color:"#999",marginBottom:8}}>BMT Tujuan: {b.bmt?.name}</div>}
-<div style={{display:"flex",gap:8}}><button className="btn bp bs" style={{flex:1}} onClick={()=>handleAdminBmt(b.id,'approve')}>✅ Setujui</button><button className="btn bo bs" style={{flex:1}} onClick={()=>handleAdminBmt(b.id,'reject')}>❌ Tolak</button></div>
+<div style={{display:"flex",gap:8}}><button className="btn bp bs" style={{flex:1}} onClick={()=>handleAdminBmt(b.id,'approve')}>✅ Setujui</button><button className="btn bo bs" style={{flex:1}} onClick={()=>handleAdminBmt(b.id,'reject')}>❌ Tolak</button><span style={{color:C.primary,cursor:"pointer",fontWeight:700,fontSize:11,padding:"6px 8px"}} onClick={()=>{openChat(b.applicant_id,b.applicant?.full_name);setShowChatList(true)}}>💬</span></div>
 </div>)}</div>}
 </>}</div>}
 
